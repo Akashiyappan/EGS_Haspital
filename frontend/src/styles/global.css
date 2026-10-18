@@ -24,7 +24,7 @@
   --shadow-lg: 0 12px 32px rgb(16 24 40 / 0.16);
   --sidebar-width: 248px;
 
-  color-scheme: light dark;
+  color-scheme: light;
   font-family:
     Inter,
     system-ui,
@@ -38,8 +38,7 @@
   -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+:root[data-theme='dark'] {
     --color-bg: #0b1418;
     --color-surface: #111d23;
     --color-surface-2: #16252c;
@@ -59,7 +58,6 @@
     --color-warning-bg: #2b2210;
     --color-info: #84caff;
     --color-info-bg: #102236;
-  }
 }
 
 *,
@@ -915,6 +913,32 @@ input:disabled {
 .sidebar-footer {
   margin-top: auto;
   padding: 0 0.5rem;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  margin: 0 0 0.65rem;
+  padding: 0.3rem 0.45rem;
+  border: 0;
+  border-radius: 7px;
+  color: var(--color-muted);
+  background: transparent;
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  color: var(--color-primary);
+  background: var(--color-surface-2);
+}
+
+.theme-toggle:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .brand,

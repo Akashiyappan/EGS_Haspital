@@ -11,7 +11,10 @@ from app.core.config import settings
 # Red flags that always escalate to emergency guidance. Deliberately broad:
 # a false positive costs a cautionary message, a false negative could cost a life.
 _RED_FLAG_PATTERNS = [
-    r"chest\s+(pain|pressure|tightness)",
+    r"\bchest\s+(pain|pressure|tightness|hurts?)\b",
+    r"\b(pain|pressure|tightness)\s+(in|around)\s+(my\s+|the\s+)?chest\b",
+    r"\bheart\s+(pain|ache|pressure|tightness|hurts?)\b",
+    r"\b(pain|ache|pressure|tightness)\s+(in|around)\s+(my\s+|the\s+)?heart\b",
     r"(can'?t|cannot|unable to|difficult(y)?|trouble|hard to)\s+(breath|breathing)",
     r"short(ness)?\s+of\s+breath",
     r"not\s+breathing",

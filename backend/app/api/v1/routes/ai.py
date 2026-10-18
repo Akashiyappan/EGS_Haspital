@@ -1,10 +1,13 @@
+from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
+from sqlalchemy import select
 
 from app.ai import service as ai_service
 from app.ai.llm import LLMClient, get_llm_client
 from app.ai.schemas import (
+    AIAppointmentBook,
     AIConversationCreate,
     AIConversationRead,
     AIExchangeRead,
@@ -15,7 +18,10 @@ from app.api.deps import CurrentPatient, DbSession, PatientUser, user_rate_limit
 from app.core.config import settings
 from app.core.exceptions import ServiceUnavailableError
 from app.core.pagination import Pagination
+from app.core.timeutils import ensure_utc, utcnow
+from app.models import AIMessage, AIMessageRole
 from app.schemas.common import Page, error_responses
+from app.services import appointment_service
 
 router = APIRouter(prefix="/ai", tags=["ai assistant"])
 
@@ -92,8 +98,103 @@ async def send_message(
 ) -> AIExchangeRead:
     conversation = await ai_service.get_conversation(db, patient, conversation_id)
     user_message, assistant_message = await ai_service.exchange(
-        db, conversation, user, body.content, llm
+        db, conversation, patient, user, body.content, llm
     )
+    user_read, assistant_read = await ai_service.to_message_reads(
+        db, [user_message, assistant_message]
+    )
+    return AIExchangeRead(user_message=user_read, assistant_message=assistant_read)
+
+
+@router.post(
+    "/conversations/{conversation_id}/book",
+    response_model=AIExchangeRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Book a selected appointment slot from the assistant chat",
+    responses=error_responses(401, 403, 404, 409, 422),
+)
+async def book_from_chat(
+    conversation_id: int,
+    body: AIAppointmentBook,
+    request: Request,
+    patient: CurrentPatient,
+    user: PatientUser,
+    db: DbSession,
+) -> AIExchangeRead:
+    conversation = await ai_service.get_conversation(db, patient, conversation_id)
+    appointment = await appointment_service.book(
+        db,
+        patient,
+        user,
+        doctor_id=body.doctor_id,
+        starts_at=body.starts_at,
+        reason=None,
+        request=request,
+    )
+    doctor_name = f"Dr. {appointment.doctor.user.full_name}"
+    confirmation = {
+        "id": appointment.id,
+        "doctor_id": appointment.doctor_id,
+        "doctor_name": doctor_name,
+        "starts_at": appointment.starts_at.isoformat(),
+        "status": appointment.status.value,
+    }
+
+    # Remove this slot from the saved offer so it cannot look bookable again.
+    last_assistant = await db.scalar(
+        select(AIMessage)
+        .where(
+            AIMessage.conversation_id == conversation.id,
+            AIMessage.role == AIMessageRole.ASSISTANT,
+        )
+        .order_by(AIMessage.id.desc())
+        .limit(1)
+    )
+    if last_assistant:
+        details = dict(last_assistant.details or {})
+        result = dict(details.get("result") or {})
+        result["appointment_options"] = [
+            option
+            for option in result.get("appointment_options", [])
+            if not (
+                option.get("doctor_id") == body.doctor_id
+                and ensure_utc(datetime.fromisoformat(option["starts_at"]))
+                == ensure_utc(body.starts_at)
+            )
+        ]
+        details["result"] = result
+        last_assistant.details = details
+
+    user_message = AIMessage(
+        conversation_id=conversation.id,
+        role=AIMessageRole.USER,
+        content=f"Book an appointment with {doctor_name} at {appointment.starts_at.isoformat()}.",
+        details={},
+    )
+    assistant_message = AIMessage(
+        conversation_id=conversation.id,
+        role=AIMessageRole.ASSISTANT,
+        content=f"Your appointment with {doctor_name} is booked.",
+        details={
+            "result": {
+                "summary": f"Your appointment with {doctor_name} is booked.",
+                "response_type": "appointment",
+                "urgency": "routine",
+                "possible_concerns": [],
+                "recommended_specializations": [],
+                "recommended_doctor_ids": [],
+                "next_steps": [],
+                "follow_up_questions": [],
+                "emergency_message": None,
+                "disclaimer": "This assistant provides general health information only. It is not a medical diagnosis and does not replace advice from a qualified doctor.",
+                "appointment_confirmation": confirmation,
+                "appointment_options": [],
+            }
+        },
+    )
+    db.add_all([user_message, assistant_message])
+    conversation.updated_at = utcnow()
+    await db.commit()
     user_read, assistant_read = await ai_service.to_message_reads(
         db, [user_message, assistant_message]
     )

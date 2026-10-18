@@ -156,8 +156,11 @@ Restart the API, then evaluate live behaviour on the demo data:
 python -m scripts.ai_eval
 ```
 
-Without a key the assistant returns `503 ai_unavailable`, except for emergency symptoms, which
-still receive emergency-care guidance.
+Without a key, general symptom analysis returns `503 ai_unavailable` except for emergency
+symptoms, which still receive emergency-care guidance. Doctor-directory and appointment requests
+use live hospital data and remain available without the model provider; patients can select and
+book an offered slot directly in the consultation. If a configured provider is temporarily
+unreachable, the assistant returns a safe fallback reply.
 
 ### Enabling image uploads
 

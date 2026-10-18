@@ -72,7 +72,7 @@ describe('AssistantView', () => {
       { initialPath: '/patient/assistant', auth },
     );
 
-    expect(await screen.findByText('Describe your symptoms')).toBeInTheDocument();
+    expect(await screen.findByText('A little guidance, when you need it')).toBeInTheDocument();
     expect(screen.getByText('Start a consultation')).toBeInTheDocument();
     expect(await screen.findByText('Fever and headache')).toBeInTheDocument();
   });
@@ -110,7 +110,7 @@ describe('AssistantView', () => {
 
     expect(await screen.findByText('I have had a high fever since yesterday')).toBeInTheDocument();
 
-    const textarea = screen.getByLabelText('Describe your symptoms');
+    const textarea = screen.getByLabelText('Ask the health assistant');
     await userEvent.type(textarea, 'What medicine should I take?');
     await userEvent.click(screen.getByRole('button', { name: 'Send' }));
 

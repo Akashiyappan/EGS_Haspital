@@ -43,11 +43,20 @@ export function ChatView({
   conversationId: number | null;
 }) {
   const conversations = useConversations();
+  const { user } = useAuth();
   const active = conversations.data?.items.find((c) => c.id === conversationId) ?? null;
+  const isDoctor = user?.role === 'DOCTOR';
+  const directoryPath = isDoctor ? '/doctor/patients' : '/patient/doctors';
 
   return (
     <div className={conversationId ? 'chat-layout thread-open' : 'chat-layout'}>
       <aside className="chat-sidebar">
+        <div className="chat-sidebar-header">
+          <Link className="button small" to={directoryPath}>
+            <Icon name="plus" size={16} /> {isDoctor ? 'Find a patient' : 'Find a doctor'}
+          </Link>
+          <p className="muted small-text">Chats open after an appointment is booked.</p>
+        </div>
         <QueryState
           isLoading={conversations.isLoading}
           error={conversations.error}
@@ -56,7 +65,11 @@ export function ChatView({
             <EmptyState
               icon="chat"
               title="No conversations yet"
-              description="Messaging becomes available once an appointment has been booked."
+              description={
+                isDoctor
+                  ? 'A patient can chat with you after you have an appointment together.'
+                  : 'Book an appointment with a doctor to start a private chat about your care.'
+              }
             />
           }
         >

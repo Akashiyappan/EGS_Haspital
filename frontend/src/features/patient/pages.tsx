@@ -180,9 +180,11 @@ export function FindDoctorsPage() {
 export function DoctorProfilePage() {
   const id = Number(useParams().doctorId);
   const doctor = useDoctor(id);
+  const careAppointments = useAppointments({ doctor_id: id, scope: 'all', page_size: 100 });
   const navigate = useNavigate();
   const openChat = useOpenConversation();
   const [booked, setBooked] = useState(false);
+  const canMessage = booked || Boolean(careAppointments.data?.items.length);
 
   return (
     <div className="stack">
@@ -199,7 +201,7 @@ export function DoctorProfilePage() {
                   <button
                     type="button"
                     className="secondary small"
-                    disabled={openChat.isPending}
+                    disabled={openChat.isPending || careAppointments.isLoading || !canMessage}
                     onClick={() =>
                       openChat.mutate(
                         { doctor_id: id },
@@ -207,7 +209,7 @@ export function DoctorProfilePage() {
                       )
                     }
                   >
-                    <Icon name="chat" size={16} /> Message
+                    <Icon name="chat" size={16} /> {canMessage ? 'Message' : 'Book to message'}
                   </button>
                 }
               />

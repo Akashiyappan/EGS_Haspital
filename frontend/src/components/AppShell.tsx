@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 
 import { appointmentKeys } from '@/features/appointments/api';
@@ -78,6 +78,17 @@ export function AppShell() {
   const meta = useMeta();
   const connection = useRealtimeState();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = window.localStorage.getItem('egs-theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem('egs-theme', theme);
+  }, [theme]);
 
   if (!user) return null;
   const items = NAV[user.role];
@@ -108,6 +119,15 @@ export function AppShell() {
           ))}
         </nav>
         <div className="sidebar-footer">
+          <button
+            type="button"
+            className="theme-toggle"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+          >
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
+            <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+          </button>
           <span className="role-pill">{user.role.toLowerCase()}</span>
         </div>
       </aside>

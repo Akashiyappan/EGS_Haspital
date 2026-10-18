@@ -15,6 +15,7 @@ import {
   useAIConversations,
   useAIMessages,
   useAskAssistant,
+  useBookFromAssistant,
   useCreateAIConversation,
   useDeleteAIConversation,
 } from './api';
@@ -40,8 +41,75 @@ const EXAMPLES = [
   'Stomach pain after meals for a week',
 ];
 
-export function AssistantResult({ result }: { result: AIResult }) {
+export function AssistantResult({
+  result,
+  conversationId,
+}: {
+  result: AIResult;
+  conversationId?: number;
+}) {
   const urgency = URGENCY[result.urgency];
+  if (result.emergency_message) {
+    return (
+      <div className="stack ai-result">
+        <div className="emergency-banner" role="alert">
+          <Icon name="alert" />
+          <div>
+            <strong>Possible emergency</strong>
+            <p>{result.emergency_message}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (result.response_type === 'follow_up' || result.response_type === 'appointment') {
+    return (
+      <div className="stack ai-result">
+        <p>{result.summary}</p>
+        {conversationId && !!result.appointment_options?.length && (
+          <div className="stack">
+            <h4>Available appointment times (clinic local time)</h4>
+            <AppointmentOptions options={result.appointment_options} conversationId={conversationId} />
+          </div>
+        )}
+        {!!result.doctor_directory?.length && (
+          <div className="stack">
+            <h4>Doctors at this hospital</h4>
+            <div className="card-grid">
+              {result.doctor_directory.map((doctor) => (
+                <DoctorCard
+                  key={doctor.id}
+                  doctor={doctor}
+                  actions={
+                    <Link className="button small" to={`/patient/doctors/${doctor.id}`}>
+                      View doctor
+                    </Link>
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {result.appointment_confirmation && (
+          <div className="success" role="status">
+            <div className="stack">
+              <strong>Appointment booked</strong>
+              <span>
+                {result.appointment_confirmation.doctor_name} ·{' '}
+                {new Date(result.appointment_confirmation.starts_at).toLocaleString()}
+              </span>
+              <Link className="button small" to="/patient/appointments">
+                View appointment
+              </Link>
+            </div>
+          </div>
+        )}
+        <p className="disclaimer">
+          <Icon name="shield" size={16} /> {result.disclaimer}
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="stack ai-result">
       {result.emergency_message ? (
@@ -58,6 +126,20 @@ export function AssistantResult({ result }: { result: AIResult }) {
         </div>
       )}
       <p>{result.summary}</p>
+      {result.appointment_confirmation && (
+        <div className="success" role="status">
+          <div className="stack">
+            <strong>Appointment booked</strong>
+            <span>
+              {result.appointment_confirmation.doctor_name} ·{' '}
+              {new Date(result.appointment_confirmation.starts_at).toLocaleString()}
+            </span>
+            <Link className="button small" to="/patient/appointments">
+              View appointment
+            </Link>
+          </div>
+        </div>
+      )}
       {result.possible_concerns.length > 0 && (
         <div>
           <h4>Possible areas of concern</h4>
@@ -122,7 +204,13 @@ export function AssistantResult({ result }: { result: AIResult }) {
   );
 }
 
-function MessageBubble({ message }: { message: AIMessage }) {
+function MessageBubble({
+  message,
+  conversationId,
+}: {
+  message: AIMessage;
+  conversationId: number;
+}) {
   if (message.role === 'USER') {
     return (
       <div className="bubble mine">
@@ -135,7 +223,41 @@ function MessageBubble({ message }: { message: AIMessage }) {
       <span className="ai-avatar" aria-hidden>
         <Icon name="sparkles" size={18} />
       </span>
-      {message.result ? <AssistantResult result={message.result} /> : <p>{message.content}</p>}
+      {message.result ? (
+        <AssistantResult result={message.result} conversationId={conversationId} />
+      ) : (
+        <p>{message.content}</p>
+      )}
+    </div>
+  );
+}
+
+function AppointmentOptions({
+  options,
+  conversationId,
+}: {
+  options: NonNullable<AIResult['appointment_options']>;
+  conversationId: number;
+}) {
+  const book = useBookFromAssistant(conversationId);
+  return (
+    <div className="stack">
+      {options.map((option) => (
+        <div key={`${option.doctor_id}:${option.starts_at}`} className="row wrap space-between">
+          <span>
+            <strong>{option.doctor_name}</strong> · {option.specialization} · {option.local_time}
+          </span>
+          <button
+            type="button"
+            className="button small"
+            disabled={book.isPending}
+            onClick={() => book.mutate({ doctor_id: option.doctor_id, starts_at: option.starts_at })}
+          >
+            {book.isPending ? 'Booking…' : 'Book this time'}
+          </button>
+        </div>
+      ))}
+      {book.isError && <Alert>{getErrorMessage(book.error)}</Alert>}
     </div>
   );
 }
@@ -148,8 +270,12 @@ export function AssistantView({ conversationId }: { conversationId: number | nul
   const remove = useDeleteAIConversation();
 
   async function startNew() {
-    const conversation = await create.mutateAsync();
-    void navigate(`/patient/assistant/${conversation.id}`);
+    try {
+      const conversation = await create.mutateAsync();
+      void navigate(`/patient/assistant/${conversation.id}`);
+    } catch {
+      // The mutation state below keeps the error beside both start controls.
+    }
   }
 
   return (
@@ -165,6 +291,11 @@ export function AssistantView({ conversationId }: { conversationId: number | nul
             <Icon name="plus" size={16} /> New consultation
           </button>
         </div>
+        {create.isError && (
+          <Alert>
+            {getErrorMessage(create.error)} Try again, or refresh the page if the problem continues.
+          </Alert>
+        )}
         <QueryState
           isLoading={conversations.isLoading}
           error={conversations.error}
@@ -214,11 +345,12 @@ export function AssistantView({ conversationId }: { conversationId: number | nul
         ) : (
           <EmptyState
             icon="sparkles"
-            title="Describe your symptoms"
-            description="Get general guidance and find the right kind of doctor. This is not a diagnosis."
+            title="A little guidance, when you need it"
+            description="Start a private consultation, describe what you’re feeling, and get practical next steps and help finding a doctor. This is not a diagnosis."
             action={
-              <button type="button" onClick={() => void startNew()}>
-                Start a consultation
+              <button type="button" onClick={() => void startNew()} disabled={create.isPending}>
+                <Icon name="plus" size={16} />
+                {create.isPending ? 'Starting consultation…' : 'Start a consultation'}
               </button>
             }
           />
@@ -269,7 +401,7 @@ function AssistantThread({ conversationId }: { conversationId: number }) {
             </div>
           )}
           {messages.data?.map((message) => (
-            <MessageBubble key={message.id} message={message} />
+            <MessageBubble key={message.id} message={message} conversationId={conversationId} />
           ))}
         </QueryState>
         {ask.isPending && (
@@ -277,7 +409,7 @@ function AssistantThread({ conversationId }: { conversationId: number }) {
             <span className="ai-avatar" aria-hidden>
               <Icon name="sparkles" size={18} />
             </span>
-            <p className="muted">Reviewing your symptoms and checking our doctors…</p>
+            <p className="muted">Thinking through your symptoms and checking which doctors may help…</p>
           </div>
         )}
         <div ref={bottomRef} />
@@ -286,8 +418,8 @@ function AssistantThread({ conversationId }: { conversationId: number }) {
       <form className="composer" onSubmit={submit}>
         <textarea
           className="composer-input"
-          aria-label="Describe your symptoms"
-          placeholder="e.g. I have had a high fever and a severe headache for two days"
+          aria-label="Ask the health assistant"
+          placeholder="Ask about symptoms, doctors, or booking an appointment"
           rows={2}
           maxLength={2000}
           value={text}
@@ -305,6 +437,10 @@ function AssistantThread({ conversationId }: { conversationId: number }) {
           <Icon name="send" />
         </button>
       </form>
+      <p className="muted small-text pad">
+        Ask follow-up questions or request an appointment. Share symptom duration and severity,
+        but avoid highly sensitive personal details.
+      </p>
     </>
   );
 }

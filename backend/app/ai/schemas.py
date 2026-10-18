@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 from app.models.enums import AIMessageRole
 from app.schemas.doctor import DoctorPublic
@@ -12,10 +12,27 @@ URGENCY_RANK: dict[str, int] = {"self_care": 0, "routine": 1, "urgent": 2, "emer
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=300)]
 
 
+class AppointmentConfirmation(BaseModel):
+    id: int
+    doctor_id: int
+    doctor_name: str
+    starts_at: datetime
+    status: str
+
+
+class AppointmentOption(BaseModel):
+    doctor_id: int
+    doctor_name: str
+    specialization: str
+    starts_at: datetime
+    local_time: str
+
+
 class AssistantResult(BaseModel):
     """Structured model output after validation and safety post-processing."""
 
     summary: str = Field(max_length=3000)
+    response_type: Literal["assessment", "follow_up", "appointment"] = "assessment"
     urgency: Urgency = "routine"
     possible_concerns: list[ShortText] = Field(default_factory=list, max_length=5)
     recommended_specializations: list[ShortText] = Field(default_factory=list, max_length=5)
@@ -24,6 +41,8 @@ class AssistantResult(BaseModel):
     follow_up_questions: list[ShortText] = Field(default_factory=list, max_length=3)
     emergency_message: str | None = None
     disclaimer: str = ""
+    appointment_confirmation: AppointmentConfirmation | None = None
+    appointment_options: list[AppointmentOption] = Field(default_factory=list, max_length=10)
 
 
 class AIConversationCreate(BaseModel):
@@ -41,8 +60,21 @@ class AIMessageCreate(BaseModel):
     content: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=2000)]
 
 
+class AIAppointmentBook(BaseModel):
+    doctor_id: int = Field(ge=1)
+    starts_at: datetime
+
+    @field_validator("starts_at")
+    @classmethod
+    def starts_at_must_be_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("starts_at must include a timezone offset")
+        return value
+
+
 class AIResultRead(AssistantResult):
     recommended_doctors: list[DoctorPublic] = Field(default_factory=list)
+    doctor_directory: list[DoctorPublic] = Field(default_factory=list)
     tools_used: list[str] = Field(default_factory=list)
 
 

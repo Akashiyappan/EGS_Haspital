@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { appointmentKeys } from '@/features/appointments/api';
 import { api } from '@/lib/api-client';
 import type { DoctorPublic, Page } from '@/lib/types';
 import { withToast } from '@/lib/toast';
@@ -8,6 +9,7 @@ export type Urgency = 'emergency' | 'urgent' | 'routine' | 'self_care';
 
 export interface AIResult {
   summary: string;
+  response_type?: 'assessment' | 'follow_up' | 'appointment';
   urgency: Urgency;
   possible_concerns: string[];
   recommended_specializations: string[];
@@ -18,6 +20,21 @@ export interface AIResult {
   disclaimer: string;
   recommended_doctors: DoctorPublic[];
   tools_used: string[];
+  appointment_confirmation?: {
+    id: number;
+    doctor_id: number;
+    doctor_name: string;
+    starts_at: string;
+    status: string;
+  } | null;
+  appointment_options?: {
+    doctor_id: number;
+    doctor_name: string;
+    specialization: string;
+    starts_at: string;
+    local_time: string;
+  }[];
+  doctor_directory?: DoctorPublic[];
 }
 
 export interface AIMessage {
@@ -26,6 +43,11 @@ export interface AIMessage {
   content: string;
   result: AIResult | null;
   created_at: string;
+}
+
+export interface AIExchange {
+  user_message: AIMessage;
+  assistant_message: AIMessage;
 }
 
 export interface AIConversation {
@@ -87,7 +109,7 @@ export function useAskAssistant(conversationId: number) {
     withToast({
       mutationFn: (content: string) =>
         api
-          .post<{ user_message: AIMessage; assistant_message: AIMessage }>(
+          .post<AIExchange>(
             `/ai/conversations/${conversationId}/messages`,
             { content },
             { timeout: 90_000 },
@@ -101,7 +123,44 @@ export function useAskAssistant(conversationId: number) {
           exchange.assistant_message,
         ]);
         void queryClient.invalidateQueries({ queryKey: aiKeys.conversations });
+        if (exchange.assistant_message.result?.appointment_confirmation) {
+          void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+        }
       },
     })
+  );
+}
+
+export function useBookFromAssistant(conversationId: number) {
+  const queryClient = useQueryClient();
+  return useMutation(
+    withToast({
+      mutationFn: (slot: { doctor_id: number; starts_at: string }) =>
+        api
+          .post<AIExchange>(`/ai/conversations/${conversationId}/book`, slot)
+          .then((response) => response.data),
+      successMessage: 'Appointment booked',
+      onSuccess: (exchange, slot) => {
+        queryClient.setQueryData<AIMessage[]>(aiKeys.messages(conversationId), (previous = []) => [
+          ...previous.map((message) => {
+            if (!message.result?.appointment_options) return message;
+            return {
+              ...message,
+              result: {
+                ...message.result,
+                appointment_options: message.result.appointment_options.filter(
+                  (option) =>
+                    option.doctor_id !== slot.doctor_id || option.starts_at !== slot.starts_at,
+                ),
+              },
+            };
+          }),
+          exchange.user_message,
+          exchange.assistant_message,
+        ]);
+        void queryClient.invalidateQueries({ queryKey: aiKeys.conversations });
+        void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+      },
+    }),
   );
 }

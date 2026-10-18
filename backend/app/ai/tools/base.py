@@ -14,6 +14,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
+from app.models import Patient, User
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +27,16 @@ class ToolError(Exception):
 class ToolContext:
     db: AsyncSession
     now: datetime
+    patient: Patient | None = None
+    patient_user: User | None = None
+    current_text: str = ""
     # Every doctor id a tool returned during this run. The final answer may only
     # recommend doctors from this set.
     seen_doctor_ids: set[int] = field(default_factory=set)
+    available_slots: set[tuple[int, str]] = field(default_factory=set)
+    appointment_options: list[dict[str, Any]] = field(default_factory=list)
+    doctor_directory_ids: list[int] = field(default_factory=list)
+    booked_appointment: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

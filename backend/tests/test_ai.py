@@ -16,6 +16,7 @@ from tests.helpers import API, login, make_doctor, make_patient
     "text",
     [
         "I have chest pain and difficulty breathing",
+        "I have weekly heart pain",
         "my father lost consciousness a few minutes ago",
         "there is severe bleeding from a cut that won't stop",
         "sudden slurred speech and face drooping",
@@ -110,6 +111,7 @@ async def test_tool_calling_recommends_only_real_doctors(
         "get_doctor_profile",
         "get_doctor_availability",
         "get_available_appointment_slots",
+        "book_appointment",
     }
 
 
@@ -233,8 +235,8 @@ async def test_prompt_injection_is_refused_without_calling_model(
 async def test_model_outage(client: AsyncClient, ai, llm: FakeLLM) -> None:
     llm.script(LLMError("down"))
     routine = await ask(client, ai, "I have a runny nose")
-    assert routine.status_code == 503
-    assert routine.json()["error"]["code"] == "ai_unavailable"
+    assert routine.status_code == 201
+    assert "temporarily unavailable" in routine.json()["assistant_message"]["content"]
 
     llm.script(LLMError("down"))
     emergency = await ask(client, ai, "my friend is unconscious and not breathing")
