@@ -97,7 +97,10 @@ async def seed_demo(password: str) -> None:
 
 
 async def main() -> None:
-    if "--demo" in sys.argv:
+    if "--defaults" in sys.argv:
+        from scripts.seed_defaults import seed_defaults
+        await seed_defaults()
+    elif "--demo" in sys.argv:
         if settings.is_production:
             sys.exit("Refusing to create demo accounts in production")
         password = os.environ.get("SEED_DEMO_PASSWORD")
@@ -109,6 +112,7 @@ async def main() -> None:
         await seed_specializations()
         print("Seeded specializations")
     await engine.dispose()
+
 
 
 if __name__ == "__main__":

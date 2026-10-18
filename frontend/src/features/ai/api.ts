@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/lib/api-client';
 import type { DoctorPublic, Page } from '@/lib/types';
+import { withToast } from '@/lib/toast';
 
 export type Urgency = 'emergency' | 'urgent' | 'routine' | 'self_care';
 
@@ -60,38 +61,47 @@ export function useAIMessages(conversationId: number | null) {
 
 export function useCreateAIConversation() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => api.post<AIConversation>('/ai/conversations', {}).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: aiKeys.conversations }),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: () => api.post<AIConversation>('/ai/conversations', {}).then((r) => r.data),
+      successMessage: 'New conversation started',
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: aiKeys.conversations }),
+    })
+  );
 }
 
 export function useDeleteAIConversation() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => api.delete(`/ai/conversations/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: aiKeys.conversations }),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (id: number) => api.delete(`/ai/conversations/${id}`),
+      successMessage: 'Conversation deleted',
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: aiKeys.conversations }),
+    })
+  );
 }
 
 export function useAskAssistant(conversationId: number) {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (content: string) =>
-      api
-        .post<{ user_message: AIMessage; assistant_message: AIMessage }>(
-          `/ai/conversations/${conversationId}/messages`,
-          { content },
-          { timeout: 90_000 },
-        )
-        .then((r) => r.data),
-    onSuccess: (exchange) => {
-      queryClient.setQueryData<AIMessage[]>(aiKeys.messages(conversationId), (previous = []) => [
-        ...previous,
-        exchange.user_message,
-        exchange.assistant_message,
-      ]);
-      void queryClient.invalidateQueries({ queryKey: aiKeys.conversations });
-    },
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (content: string) =>
+        api
+          .post<{ user_message: AIMessage; assistant_message: AIMessage }>(
+            `/ai/conversations/${conversationId}/messages`,
+            { content },
+            { timeout: 90_000 },
+          )
+          .then((r) => r.data),
+      successMessage: 'Response received',
+      onSuccess: (exchange) => {
+        queryClient.setQueryData<AIMessage[]>(aiKeys.messages(conversationId), (previous = []) => [
+          ...previous,
+          exchange.user_message,
+          exchange.assistant_message,
+        ]);
+        void queryClient.invalidateQueries({ queryKey: aiKeys.conversations });
+      },
+    })
+  );
 }

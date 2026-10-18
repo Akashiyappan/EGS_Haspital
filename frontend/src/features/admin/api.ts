@@ -11,6 +11,7 @@ import type {
   TimeOff,
   TimeOffKind,
 } from '@/lib/types';
+import { withToast } from '@/lib/toast';
 
 export const adminKeys = {
   all: ['admin'] as const,
@@ -92,59 +93,75 @@ export function useAdminDoctor(id: number) {
 
 export function useSaveDoctor(id?: number) {
   const invalidate = useInvalidateAdmin();
-  return useMutation({
-    mutationFn: (input: DoctorInput) =>
-      (id
-        ? api.patch<DoctorAdmin>(`/admin/doctors/${id}`, input)
-        : api.post<DoctorAdmin>('/admin/doctors', input)
-      ).then((r) => r.data),
-    onSuccess: () => invalidate(),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (input: DoctorInput) =>
+        (id
+          ? api.patch<DoctorAdmin>(`/admin/doctors/${id}`, input)
+          : api.post<DoctorAdmin>('/admin/doctors', input)
+        ).then((r) => r.data),
+      successMessage: id ? 'Doctor updated successfully' : 'Doctor created successfully',
+      onSuccess: () => invalidate(),
+    })
+  );
 }
 
 export function useDoctorStatus(id: number) {
   const invalidate = useInvalidateAdmin();
-  return useMutation({
-    mutationFn: (input: { is_active: boolean; reason?: string }) =>
-      api
-        .post<{ doctor: DoctorAdmin; cancelled_appointments: number }>(
-          `/admin/doctors/${id}/status`,
-          input,
-        )
-        .then((r) => r.data),
-    onSuccess: () => invalidate(),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (input: { is_active: boolean; reason?: string }) =>
+        api
+          .post<{ doctor: DoctorAdmin; cancelled_appointments: number }>(
+            `/admin/doctors/${id}/status`,
+            input,
+          )
+          .then((r) => r.data),
+      successMessage: (data) =>
+        data.doctor.is_active ? 'Doctor activated successfully' : 'Doctor deactivated successfully',
+      onSuccess: () => invalidate(),
+    })
+  );
 }
 
 export function useDeleteDoctor(id: number) {
   const invalidate = useInvalidateAdmin();
-  return useMutation({
-    mutationFn: () => api.delete(`/admin/doctors/${id}`),
-    onSuccess: () => invalidate(),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: () => api.delete(`/admin/doctors/${id}`),
+      successMessage: 'Doctor deleted successfully',
+      onSuccess: () => invalidate(),
+    })
+  );
 }
 
 export function useResetDoctorPassword(id: number) {
-  return useMutation({
-    mutationFn: (temporaryPassword: string) =>
-      api.post(`/admin/doctors/${id}/reset-password`, { temporary_password: temporaryPassword }),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (temporaryPassword: string) =>
+        api.post(`/admin/doctors/${id}/reset-password`, { temporary_password: temporaryPassword }),
+      successMessage: 'Password reset successfully',
+    })
+  );
 }
 
 export function useUploadDoctorAvatar(id: number) {
   const invalidate = useInvalidateAdmin();
-  return useMutation({
-    mutationFn: (file: File) => {
-      const form = new FormData();
-      form.append('file', file);
-      return api
-        .post<DoctorAdmin>(`/admin/doctors/${id}/avatar`, form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-        .then((r) => r.data);
-    },
-    onSuccess: () => invalidate(),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (file: File) => {
+        const form = new FormData();
+        form.append('file', file);
+        return api
+          .post<DoctorAdmin>(`/admin/doctors/${id}/avatar`, form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          })
+          .then((r) => r.data);
+      },
+      successMessage: 'Avatar uploaded successfully',
+      onSuccess: () => invalidate(),
+    })
+  );
 }
 
 export function useDoctorSchedule(id: number) {
@@ -159,16 +176,19 @@ export function useDoctorSchedule(id: number) {
 
 export function useSaveSchedule(id: number) {
   const invalidate = useInvalidateAdmin();
-  return useMutation({
-    mutationFn: (rules: ScheduleRule[]) =>
-      api
-        .put<{ timezone: string; rules: ScheduleRule[]; conflicting_appointment_ids: number[] }>(
-          `/admin/doctors/${id}/schedule`,
-          { rules },
-        )
-        .then((r) => r.data),
-    onSuccess: () => invalidate(),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (rules: ScheduleRule[]) =>
+        api
+          .put<{ timezone: string; rules: ScheduleRule[]; conflicting_appointment_ids: number[] }>(
+            `/admin/doctors/${id}/schedule`,
+            { rules },
+          )
+          .then((r) => r.data),
+      successMessage: 'Schedule saved successfully',
+      onSuccess: () => invalidate(),
+    })
+  );
 }
 
 export function useTimeOff(doctorId: number | 'clinic') {
@@ -185,29 +205,35 @@ export function useTimeOff(doctorId: number | 'clinic') {
 
 export function useAddTimeOff(doctorId: number | 'clinic') {
   const invalidate = useInvalidateAdmin();
-  return useMutation({
-    mutationFn: (input: {
-      kind: TimeOffKind;
-      starts_at: string;
-      ends_at: string;
-      reason?: string;
-    }) =>
-      api
-        .post<TimeOff & { conflicting_appointment_ids: number[] }>(
-          doctorId === 'clinic' ? '/admin/time-off' : `/admin/doctors/${doctorId}/time-off`,
-          input,
-        )
-        .then((r) => r.data),
-    onSuccess: () => invalidate(),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (input: {
+        kind: TimeOffKind;
+        starts_at: string;
+        ends_at: string;
+        reason?: string;
+      }) =>
+        api
+          .post<TimeOff & { conflicting_appointment_ids: number[] }>(
+            doctorId === 'clinic' ? '/admin/time-off' : `/admin/doctors/${doctorId}/time-off`,
+            input,
+          )
+          .then((r) => r.data),
+      successMessage: 'Time off added successfully',
+      onSuccess: () => invalidate(),
+    })
+  );
 }
 
 export function useRemoveTimeOff() {
   const invalidate = useInvalidateAdmin();
-  return useMutation({
-    mutationFn: (id: number) => api.delete(`/admin/time-off/${id}`),
-    onSuccess: () => invalidate(),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (id: number) => api.delete(`/admin/time-off/${id}`),
+      successMessage: 'Time off removed successfully',
+      onSuccess: () => invalidate(),
+    })
+  );
 }
 
 export function useAdminSpecializations() {
@@ -220,25 +246,28 @@ export function useAdminSpecializations() {
 export function useSaveSpecialization() {
   const invalidate = useInvalidateAdmin();
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      ...input
-    }: {
-      id?: number;
-      name?: string;
-      description?: string | null;
-      is_active?: boolean;
-    }) =>
-      (id
-        ? api.patch<Specialization>(`/admin/specializations/${id}`, input)
-        : api.post<Specialization>('/admin/specializations', input)
-      ).then((r) => r.data),
-    onSuccess: () => {
-      void invalidate();
-      void queryClient.invalidateQueries({ queryKey: ['specializations'] });
-    },
-  });
+  return useMutation(
+    withToast({
+      mutationFn: ({
+        id,
+        ...input
+      }: {
+        id?: number;
+        name?: string;
+        description?: string | null;
+        is_active?: boolean;
+      }) =>
+        (id
+          ? api.patch<Specialization>(`/admin/specializations/${id}`, input)
+          : api.post<Specialization>('/admin/specializations', input)
+        ).then((r) => r.data),
+      successMessage: (data) => (data.id ? 'Specialization updated successfully' : 'Specialization created successfully'),
+      onSuccess: () => {
+        void invalidate();
+        void queryClient.invalidateQueries({ queryKey: ['specializations'] });
+      },
+    })
+  );
 }
 
 export function useAdminUsers(params: {
@@ -256,11 +285,15 @@ export function useAdminUsers(params: {
 
 export function useUserStatus() {
   const invalidate = useInvalidateAdmin();
-  return useMutation({
-    mutationFn: ({ id, is_active }: { id: number; is_active: boolean }) =>
-      api.post<AdminUser>(`/admin/users/${id}/status`, { is_active }).then((r) => r.data),
-    onSuccess: () => invalidate(),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: ({ id, is_active }: { id: number; is_active: boolean }) =>
+        api.post<AdminUser>(`/admin/users/${id}/status`, { is_active }).then((r) => r.data),
+      successMessage: (data) =>
+        data.is_active ? 'User activated successfully' : 'User deactivated successfully',
+      onSuccess: () => invalidate(),
+    })
+  );
 }
 
 export function useAuditLogs(params: { page: number; action?: string }) {

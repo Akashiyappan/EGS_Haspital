@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/lib/api-client';
 import type { Notification, Page } from '@/lib/types';
+import { withToast } from '@/lib/toast';
 
 export const notificationKeys = {
   all: ['notifications'] as const,
@@ -29,9 +30,12 @@ export function useUnreadNotifications() {
 
 export function useMarkNotificationsRead() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number | 'all') =>
-      id === 'all' ? api.post('/notifications/read-all') : api.post(`/notifications/${id}/read`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: notificationKeys.all }),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (id: number | 'all') =>
+        id === 'all' ? api.post('/notifications/read-all') : api.post(`/notifications/${id}/read`),
+      successMessage: 'Notifications marked as read',
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: notificationKeys.all }),
+    })
+  );
 }

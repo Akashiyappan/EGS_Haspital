@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { api } from '@/lib/api-client';
 import type { DoctorAdmin, Page, ScheduleRule, TimeOff } from '@/lib/types';
+import { withToast } from '@/lib/toast';
 
 export interface DoctorPatient {
   id: number;
@@ -33,11 +34,14 @@ export function useDoctorProfile() {
 
 export function useUpdateDoctorProfile() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { bio?: string | null; qualification?: string | null }) =>
-      api.patch<DoctorAdmin>('/doctor/me', input).then((r) => r.data),
-    onSuccess: (doctor) => queryClient.setQueryData(doctorPortalKeys.me, doctor),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (input: { bio?: string | null; qualification?: string | null }) =>
+        api.patch<DoctorAdmin>('/doctor/me', input).then((r) => r.data),
+      successMessage: 'Profile updated successfully',
+      onSuccess: (doctor) => queryClient.setQueryData(doctorPortalKeys.me, doctor),
+    })
+  );
 }
 
 export function useMySchedule() {

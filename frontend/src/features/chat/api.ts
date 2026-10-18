@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/lib/api-client';
 import type { Page } from '@/lib/types';
+import { withToast } from '@/lib/toast';
 
 export interface Counterpart {
   user_id: number;
@@ -102,11 +103,14 @@ export function useChatUnread() {
 
 export function useOpenConversation() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { doctor_id?: number; patient_id?: number }) =>
-      api.post<Conversation>('/chat/conversations', input).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.conversations }),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (input: { doctor_id?: number; patient_id?: number }) =>
+        api.post<Conversation>('/chat/conversations', input).then((r) => r.data),
+      successMessage: 'Conversation started',
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.conversations }),
+    })
+  );
 }
 
 export function newClientId(): string {

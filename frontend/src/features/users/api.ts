@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/lib/api-client';
+import { withToast } from '@/lib/toast';
 
 import type { Me, ProfileUpdate } from './types';
 
@@ -23,16 +24,22 @@ export const usersApi = {
 
 export function useUpdateMe() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: usersApi.updateMe,
-    onSuccess: (user) => queryClient.setQueryData(userKeys.me, user),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: usersApi.updateMe,
+      successMessage: 'Profile updated successfully',
+      onSuccess: (user) => queryClient.setQueryData(userKeys.me, user),
+    })
+  );
 }
 
 export function useUploadAvatar() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: usersApi.uploadAvatar,
-    onSuccess: (user) => queryClient.setQueryData(userKeys.me, user),
-  });
+  return useMutation(
+    withToast({
+      mutationFn: usersApi.uploadAvatar,
+      successMessage: 'Avatar uploaded successfully',
+      onSuccess: (user) => queryClient.setQueryData(userKeys.me, user),
+    })
+  );
 }

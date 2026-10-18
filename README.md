@@ -31,57 +31,95 @@ logging, rate limiting, structured logs with request IDs.
 * MySQL 8.0+ (InnoDB, utf8mb4). SQLite works as a zero-setup fallback for a quick try-out
 * Optional: a Cloudinary account (image uploads) and a Groq API key (AI assistant)
 
-## Local development
+## Run Configuration & Quick Start
 
-### Database (MySQL)
+### Option 1: One-Click Windows Runners (Recommended)
 
-```sql
-CREATE DATABASE onezae CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-CREATE USER 'onezae'@'localhost' IDENTIFIED BY 'choose-a-password';
-GRANT ALL PRIVILEGES ON onezae.* TO 'onezae'@'localhost';
-```
+1. **Backend**: Double-click or run [`run_backend.bat`](file:///d:/Extra%20Project/EGS_Haspital/run_backend.bat)
+   - Automatically sets up Python virtual environment (`.venv`)
+   - Installs `requirements.txt`
+   - Automatically creates the MySQL database `onezae` if it does not exist
+   - Runs `alembic upgrade head`
+   - Seeds default **Admin**, **Doctor**, and **Patient** accounts
+   - Launches FastAPI at `http://127.0.0.1:8000`
 
-Then set `DATABASE_URL` in `backend/.env` (step below). For a quick try-out without MySQL, use
-`DATABASE_URL=sqlite+aiosqlite:///./app.db` instead.
+2. **Frontend**: Double-click or run [`run_frontend.bat`](file:///d:/Extra%20Project/EGS_Haspital/run_frontend.bat)
+   - Installs frontend packages (`npm install`)
+   - Starts the Vite development server at `http://localhost:5173`
 
-### Backend
+3. **Re-seed Users**: Double-click or run [`seed_users.bat`](file:///d:/Extra%20Project/EGS_Haspital/seed_users.bat)
+
+---
+
+### Option 2: Manual Terminal Commands (Windows PowerShell / CMD)
+
+#### Step 1: Database Setup & Alembic Fix
+If you get `OperationalError: (1049, "Unknown database 'onezae'")` when running Alembic, it means MySQL has not created the database yet. You can auto-create it with our script:
 
 ```bash
 cd backend
+.venv\Scripts\activate
+python -m scripts.init_db
+```
+
+Or run this SQL in your MySQL Command Line / Workbench:
+```sql
+CREATE DATABASE IF NOT EXISTS onezae CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+*(Zero-setup alternative: Change `DATABASE_URL` in `backend/.env` to `DATABASE_URL=sqlite+aiosqlite:///./app.db`)*
+
+#### Step 2: Backend Setup & Run
+```bash
+cd backend
+
+# 1. Create and activate virtual environment
 python -m venv .venv
-# Windows: .venv\Scripts\activate    Linux/macOS: source .venv/bin/activate
-pip install -r requirements-dev.txt
-cp .env.example .env                 # Windows: copy .env.example .env — set DATABASE_URL, SECRET_KEY
+.venv\Scripts\activate      # Linux/macOS: source .venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Ensure database exists and run migrations
+python -m scripts.init_db
 alembic upgrade head
-python -m scripts.seed               # specializations
+
+# 4. Seed default users (Admin, Doctor, Patient)
+python -m scripts.seed_defaults
+
+# 5. Start API server
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Create the first administrator (admins cannot self-register):
-
-```bash
-python -m scripts.create_admin admin@example.com "Clinic" "Admin"
-```
-
-Optional demo data (admin, 4 doctors with Mon–Sat schedules, a patient; never in production):
-
-```bash
-# Windows PowerShell: $env:SEED_DEMO_PASSWORD="DemoPass1"; python -m scripts.seed --demo
-SEED_DEMO_PASSWORD=DemoPass1 python -m scripts.seed --demo
-# Sign in as admin.demo@example.com / patient.demo@example.com / anita.rao.demo@example.com
-```
-
-API docs: http://127.0.0.1:8000/docs (disabled when `ENVIRONMENT=production`).
-
-### Frontend
-
+#### Step 3: Frontend Run
 ```bash
 cd frontend
 npm install
-npm run dev                          # http://localhost:5173
+npm run dev                 # http://localhost:5173
 ```
 
-Vite proxies `/api` (including the WebSocket) to `127.0.0.1:8000`, so the browser sees one origin.
+---
+
+### Option 3: VS Code Run Configurations
+VS Code / Cursor debug configurations are included in [`.vscode/launch.json`](file:///d:/Extra%20Project/EGS_Haspital/.vscode/launch.json). Press `F5` or select from the Run & Debug menu:
+* **Backend: FastAPI (Uvicorn)** — Runs the API with live-reload
+* **Backend: Initialize Database** — Ensures MySQL database exists
+* **Backend: Alembic Upgrade Head** — Applies migrations
+* **Backend: Seed Default Users** — Seeds Admin, Doctor, and Patient
+
+---
+
+## Default Login Credentials
+
+| Role | Portal | Email | Password |
+|---|---|---|---|
+| **Admin** | Staff Portal | `admin@hospital.com` | `AdminPassword123` |
+| **Doctor** | Staff Portal | `doctor@hospital.com` | `DoctorPassword123` |
+| **Patient** | Patient Portal | `patient@hospital.com` | `PatientPassword123` |
+
+* **Web Application**: http://localhost:5173
+* **Interactive API Docs (Swagger UI)**: http://127.0.0.1:8000/docs
+
 
 ## Configuration
 

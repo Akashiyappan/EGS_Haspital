@@ -3,6 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { doctorKeys } from '@/features/doctors/api';
 import { api } from '@/lib/api-client';
 import type { Appointment, AppointmentAction, AppointmentStatus, Page } from '@/lib/types';
+import { withToast } from '@/lib/toast';
 
 export const appointmentKeys = {
   all: ['appointments'] as const,
@@ -30,14 +31,17 @@ export function useAppointments(params: AppointmentQuery) {
 
 export function useBookAppointment() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { doctor_id: number; starts_at: string; reason?: string }) =>
-      api.post<Appointment>('/appointments', input).then((r) => r.data),
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
-      void queryClient.invalidateQueries({ queryKey: doctorKeys.all });
-    },
-  });
+  return useMutation(
+    withToast({
+      mutationFn: (input: { doctor_id: number; starts_at: string; reason?: string }) =>
+        api.post<Appointment>('/appointments', input).then((r) => r.data),
+      successMessage: 'Appointment booked successfully',
+      onSettled: () => {
+        void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+        void queryClient.invalidateQueries({ queryKey: doctorKeys.all });
+      },
+    })
+  );
 }
 
 const ACTION_PATH: Record<AppointmentAction, string> = {
@@ -49,27 +53,30 @@ const ACTION_PATH: Record<AppointmentAction, string> = {
 
 export function useAppointmentAction() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      action,
-      reason,
-      doctor_notes,
-    }: {
-      id: number;
-      action: AppointmentAction;
-      reason?: string;
-      doctor_notes?: string;
-    }) => {
-      const body =
-        action === 'cancel' ? { reason } : action === 'complete' ? { doctor_notes } : undefined;
-      return api
-        .post<Appointment>(`/appointments/${id}/${ACTION_PATH[action]}`, body)
-        .then((r) => r.data);
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
-      void queryClient.invalidateQueries({ queryKey: doctorKeys.all });
-    },
-  });
+  return useMutation(
+    withToast({
+      mutationFn: ({
+        id,
+        action,
+        reason,
+        doctor_notes,
+      }: {
+        id: number;
+        action: AppointmentAction;
+        reason?: string;
+        doctor_notes?: string;
+      }) => {
+        const body =
+          action === 'cancel' ? { reason } : action === 'complete' ? { doctor_notes } : undefined;
+        return api
+          .post<Appointment>(`/appointments/${id}/${ACTION_PATH[action]}`, body)
+          .then((r) => r.data);
+      },
+      successMessage: (data) => `Appointment ${data.status.toLowerCase()} successfully`,
+      onSettled: () => {
+        void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+        void queryClient.invalidateQueries({ queryKey: doctorKeys.all });
+      },
+    })
+  );
 }

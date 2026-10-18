@@ -12,6 +12,7 @@ import type { Role } from '@/lib/types';
 import { Icon, type IconName } from './Icon';
 import { NotificationBell } from './NotificationBell';
 import { Avatar } from './ui';
+import { ToastProvider } from './ToastProvider';
 
 interface NavItem {
   to: string;
@@ -118,6 +119,7 @@ export function AppShell() {
         onClick={() => setMenuOpen(false)}
       />
       <div className="shell-main">
+        <ToastProvider />
         <header className="topbar">
           <button
             type="button"
