@@ -735,6 +735,36 @@ input:disabled {
   border-bottom: 0;
 }
 
+.audit-table {
+  min-width: 850px;
+  table-layout: fixed;
+}
+
+.audit-col-when { width: 19%; }
+.audit-col-activity { width: 21%; }
+.audit-col-actor { width: 19%; }
+.audit-col-related { width: 16%; }
+.audit-col-details { width: 25%; }
+
+.audit-table th,
+.audit-table td {
+  padding: 0.8rem 0.75rem;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.audit-table thead th {
+  white-space: nowrap;
+}
+
+.audit-table td:first-child {
+  white-space: nowrap;
+}
+
+.audit-table td:nth-child(2) strong {
+  font-weight: 650;
+}
+
 .pagination {
   display: flex;
   align-items: center;

@@ -17,6 +17,7 @@ class NotificationRead(ORMModel):
 class AuditLogRead(ORMModel):
     id: int
     actor_id: int | None
+    actor_name: str | None = None
     action: str
     entity_type: str | None
     entity_id: str | None

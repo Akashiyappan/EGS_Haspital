@@ -27,6 +27,7 @@ const NAV: Record<Role, NavItem[]> = {
     { to: '/patient', label: 'Dashboard', icon: 'home', end: true },
     { to: '/patient/doctors', label: 'Find a doctor', icon: 'stethoscope' },
     { to: '/patient/appointments', label: 'Appointments', icon: 'calendar' },
+    { to: '/patient/records', label: 'Health records', icon: 'list' },
     { to: '/patient/messages', label: 'Messages', icon: 'chat', badge: 'chat' },
     { to: '/patient/assistant', label: 'AI assistant', icon: 'sparkles' },
     { to: '/patient/profile', label: 'Profile', icon: 'user' },
@@ -46,7 +47,7 @@ const NAV: Record<Role, NavItem[]> = {
     { to: '/admin/specializations', label: 'Specializations', icon: 'tag' },
     { to: '/admin/holidays', label: 'Clinic holidays', icon: 'clock' },
     { to: '/admin/users', label: 'Users', icon: 'users' },
-    { to: '/admin/audit', label: 'Audit log', icon: 'shield' },
+    { to: '/admin/audit', label: 'Activity history', icon: 'shield' },
   ],
 };
 

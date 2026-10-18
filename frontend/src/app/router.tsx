@@ -51,6 +51,7 @@ const routes: RouteObject[] = [
               { path: 'doctors', lazy: lazyPage(patient, 'FindDoctorsPage') },
               { path: 'doctors/:doctorId', lazy: lazyPage(patient, 'DoctorProfilePage') },
               { path: 'appointments', lazy: lazyPage(patient, 'PatientAppointmentsPage') },
+              { path: 'records', lazy: lazyPage(patient, 'PatientRecordsPage') },
               { path: 'messages/:conversationId?', lazy: lazyPage(patient, 'PatientMessagesPage') },
               { path: 'assistant/:conversationId?', lazy: lazyPage(patient, 'AssistantPage') },
               { path: 'profile', lazy: page(() => import('@/pages/ProfilePage')) },

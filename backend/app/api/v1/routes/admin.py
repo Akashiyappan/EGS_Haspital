@@ -508,7 +508,9 @@ async def audit_logs(
     entity_id: Annotated[str | None, Query(max_length=64)] = None,
     since: date | None = None,
 ) -> Page[AuditLogRead]:
-    query = select(AuditLog)
+    query = select(AuditLog, User.first_name, User.last_name).outerjoin(
+        User, AuditLog.actor_id == User.id
+    )
     if action:
         query = query.where(AuditLog.action == action)
     if actor_id is not None:
@@ -520,9 +522,23 @@ async def audit_logs(
     if since:
         query = query.where(AuditLog.created_at >= clinic_day_bounds_utc(since)[0])
     total = await db.scalar(select(func.count()).select_from(query.subquery())) or 0
-    rows = await db.scalars(
+    rows = (await db.execute(
         query.order_by(AuditLog.id.desc()).limit(page.page_size).offset(page.offset)
-    )
+    )).all()
     return Page[AuditLogRead].build(
-        [AuditLogRead.model_validate(r) for r in rows], total, page.page, page.page_size
+        [
+            AuditLogRead(
+                id=log.id,
+                actor_id=log.actor_id,
+                actor_name=(f"{first_name} {last_name or ''}".strip() if first_name else None),
+                action=log.action,
+                entity_type=log.entity_type,
+                entity_id=log.entity_id,
+                details=log.details,
+                ip_address=log.ip_address,
+                request_id=log.request_id,
+                created_at=log.created_at,
+            )
+            for log, first_name, last_name in rows
+        ], total, page.page, page.page_size
     )

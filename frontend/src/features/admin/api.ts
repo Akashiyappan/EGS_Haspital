@@ -50,6 +50,7 @@ export interface DoctorInput {
 export interface AuditLog {
   id: number;
   actor_id: number | null;
+  actor_name: string | null;
   action: string;
   entity_type: string | null;
   entity_id: string | null;

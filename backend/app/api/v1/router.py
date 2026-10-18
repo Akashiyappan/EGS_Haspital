@@ -11,6 +11,7 @@ from app.api.v1.routes import (
     health,
     meta,
     notifications,
+    records,
     users,
     ws,
 )
@@ -22,6 +23,7 @@ api_router.include_router(auth.router)
 api_router.include_router(users.router)
 api_router.include_router(doctors.router)
 api_router.include_router(appointments.router)
+api_router.include_router(records.router)
 api_router.include_router(chat.router)
 api_router.include_router(notifications.router)
 api_router.include_router(ai.router)

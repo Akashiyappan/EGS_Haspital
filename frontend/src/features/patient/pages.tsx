@@ -18,6 +18,7 @@ import { useAppointments } from '@/features/appointments/api';
 import { AppointmentList } from '@/features/appointments/AppointmentList';
 import { useAuth } from '@/features/auth/useAuth';
 import { useChatUnread, useOpenConversation } from '@/features/chat/api';
+import { useVisitRecords } from '@/features/patient/records-api';
 import { ChatView } from '@/features/chat/ChatView';
 import { useDoctor, useDoctors, useSpecializations } from '@/features/doctors/api';
 import { BookingPanel } from '@/features/doctors/BookingPanel';
@@ -89,6 +90,9 @@ export function PatientDashboard() {
           </div>
         </Card>
       </div>
+      <Card title="Your health records" actions={<Link to="/patient/records">View records</Link>}>
+        <p className="muted">Review completed visits and clinical notes from your doctors.</p>
+      </Card>
     </div>
   );
 }
@@ -275,6 +279,45 @@ export function PatientAppointmentsPage() {
           <Pagination page={page} pages={appointments.data?.pages ?? 1} onChange={setPage} />
         </QueryState>
       </Card>
+    </div>
+  );
+}
+
+export function PatientRecordsPage() {
+  const records = useVisitRecords();
+  const timeZone = useClinicTimezone();
+  return (
+    <div className="stack">
+      <PageHeader
+        title="Health records"
+        description="Your completed visits and notes shared by your care team."
+        actions={<Link to="/patient/appointments" className="button secondary">Appointments</Link>}
+      />
+      <QueryState
+        isLoading={records.isLoading}
+        error={records.error}
+        onRetry={() => void records.refetch()}
+        isEmpty={!records.data?.length}
+        empty={<EmptyState icon="list" title="No completed visits yet" description="Visit summaries will appear here after your appointments are completed." />}
+      >
+        <div className="stack">
+          {records.data?.map((record) => (
+            <Card key={record.appointment_id} title={formatDateTime(record.date, timeZone)}>
+              <div className="stack">
+                <div>
+                  <strong>{record.doctor_name}</strong>
+                  {record.specializations.length > 0 && <p className="muted">{record.specializations.join(' · ')}</p>}
+                </div>
+                {record.reason && <p><strong>Visit reason:</strong> {record.reason}</p>}
+                <div>
+                  <h3>Clinical notes</h3>
+                  <p className="record-notes">{record.clinical_notes || 'No additional notes were shared for this visit.'}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </QueryState>
     </div>
   );
 }

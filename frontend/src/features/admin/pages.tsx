@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react';
+﻿import { type FormEvent, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 
 import { FormField, SelectField } from '@/components/FormField';
@@ -213,7 +213,7 @@ export function AdminNewDoctorPage() {
   return (
     <div className="stack">
       <Link to="/admin/doctors" className="small-text">
-        ← Doctors
+        â† Doctors
       </Link>
       <PageHeader title="Add doctor" description="Creates the doctor's login and profile." />
       <Card>
@@ -239,14 +239,14 @@ export function AdminDoctorDetailPage() {
   return (
     <div className="stack">
       <Link to="/admin/doctors" className="small-text">
-        ← Doctors
+        â† Doctors
       </Link>
       <QueryState isLoading={doctor.isLoading} error={doctor.error}>
         {doctor.data && (
           <>
             <PageHeader
               title={`Dr. ${doctor.data.full_name}`}
-              description={doctor.data.specializations.map((s) => s.name).join(' · ')}
+              description={doctor.data.specializations.map((s) => s.name).join(' Â· ')}
               actions={
                 doctor.data.is_active ? (
                   <Badge tone="success">Active</Badge>
@@ -697,7 +697,7 @@ export function AdminUsersPage() {
                       <span className="muted small-text block">{u.email}</span>
                     </td>
                     <td>{u.role.toLowerCase()}</td>
-                    <td>{u.last_login_at ? formatDateTime(u.last_login_at, timeZone) : '–'}</td>
+                    <td>{u.last_login_at ? formatDateTime(u.last_login_at, timeZone) : 'â€“'}</td>
                     <td>
                       {u.role === 'DOCTOR' ? (
                         <span className="muted small-text">Manage under Doctors</span>
@@ -738,6 +738,51 @@ export function AdminHolidaysPage() {
   );
 }
 
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  'auth.login_succeeded': 'Signed in',
+  'auth.login_failed': 'Failed sign in',
+  'auth.logout': 'Signed out',
+  'auth.password_changed': 'Changed password',
+  'auth.password_reset_requested': 'Requested password reset',
+  'auth.password_reset_completed': 'Reset password',
+  'patient.registered': 'Registered patient account',
+  'doctor.created': 'Added doctor',
+  'doctor.updated': 'Updated doctor profile',
+  'doctor.activated': 'Activated doctor account',
+  'doctor.deactivated': 'Deactivated doctor account',
+  'doctor.deleted': 'Removed doctor',
+  'doctor.password_reset': 'Reset doctor password',
+  'user.activated': 'Activated user account',
+  'user.deactivated': 'Deactivated user account',
+  'schedule.changed': 'Changed doctor schedule',
+  'time_off.added': 'Added time off',
+  'time_off.removed': 'Removed time off',
+  'specialization.created': 'Added specialization',
+  'specialization.updated': 'Updated specialization',
+  'appointment.booked': 'Booked appointment',
+  'appointment.status_changed': 'Changed appointment status',
+};
+
+function auditDetails(details: Record<string, unknown>) {
+  if (typeof details.name === 'string') return `Name: ${details.name}`;
+  if (Array.isArray(details.fields)) return `Updated: ${details.fields.join(', ')}`;
+  if (typeof details.cancelled_appointments === 'number') {
+    return `${details.cancelled_appointments} related appointments cancelled`;
+  }
+  if (typeof details.conflicting_appointments === 'number') {
+    return `${details.conflicting_appointments} appointment conflicts`;
+  }
+  if (typeof details.rules === 'number') return `${details.rules} schedule rules saved`;
+  if (typeof details.portal === 'string') return `${details.portal.toLowerCase()} portal`;
+  if (typeof details.reason === 'string') return 'Sign-in was unsuccessful';
+  return '-';
+}
+
+function auditEntityLabel(value: string | null) {
+  if (!value) return '-';
+  return value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export function AdminAuditPage() {
   const timeZone = useClinicTimezone();
   const [action, setAction] = useState('');
@@ -745,10 +790,13 @@ export function AdminAuditPage() {
   const logs = useAuditLogs({ page, action: action || undefined });
   return (
     <div className="stack">
-      <PageHeader title="Audit log" description="Security-sensitive and administrative actions." />
+      <PageHeader
+        title="Audit log"
+        description="A readable history of important account and clinic changes."
+      />
       <div className="filters">
         <SelectField
-          label="Action"
+          label="Activity type"
           value={action}
           onChange={(e) => {
             setAction(e.target.value);
@@ -756,21 +804,9 @@ export function AdminAuditPage() {
           }}
         >
           <option value="">All actions</option>
-          {[
-            'auth.login_succeeded',
-            'auth.login_failed',
-            'auth.password_changed',
-            'doctor.created',
-            'doctor.updated',
-            'doctor.deactivated',
-            'schedule.changed',
-            'time_off.added',
-            'appointment.booked',
-            'appointment.status_changed',
-            'user.deactivated',
-          ].map((a) => (
+          {Object.keys(AUDIT_ACTION_LABELS).map((a) => (
             <option key={a} value={a}>
-              {a}
+              {AUDIT_ACTION_LABELS[a]}
             </option>
           ))}
         </SelectField>
@@ -783,14 +819,21 @@ export function AdminAuditPage() {
           empty={<EmptyState icon="shield" title="No entries" />}
         >
           <div className="table-wrap">
-            <table className="table">
+            <table className="table audit-table">
+              <colgroup>
+                <col className="audit-col-when" />
+                <col className="audit-col-activity" />
+                <col className="audit-col-actor" />
+                <col className="audit-col-related" />
+                <col className="audit-col-details" />
+              </colgroup>
               <thead>
                 <tr>
                   <th scope="col">When</th>
-                  <th scope="col">Action</th>
-                  <th scope="col">Actor</th>
-                  <th scope="col">Entity</th>
-                  <th scope="col">Details</th>
+                  <th scope="col">Activity</th>
+                  <th scope="col">Performed by</th>
+                  <th scope="col">Related to</th>
+                  <th scope="col">More information</th>
                 </tr>
               </thead>
               <tbody>
@@ -798,13 +841,18 @@ export function AdminAuditPage() {
                   <tr key={log.id}>
                     <td>{formatDateTime(log.created_at, timeZone)}</td>
                     <td>
-                      <code>{log.action}</code>
+                      <strong>
+                        {AUDIT_ACTION_LABELS[log.action] ??
+                          auditEntityLabel(log.action.split('.').at(-1) ?? log.action)}
+                      </strong>
                     </td>
-                    <td>{log.actor_id ?? '–'}</td>
-                    <td>{log.entity_type ? `${log.entity_type} #${log.entity_id}` : '–'}</td>
-                    <td className="small-text muted">
-                      <code>{JSON.stringify(log.details)}</code>
+                    <td>{log.actor_name ?? 'System or deleted account'}</td>
+                    <td>
+                      {log.entity_type
+                        ? `${auditEntityLabel(log.entity_type)}${log.entity_id ? ` #${log.entity_id}` : ''}`
+                        : '-'}
                     </td>
+                    <td className="small-text muted">{auditDetails(log.details)}</td>
                   </tr>
                 ))}
               </tbody>
