@@ -1,7 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import { TextAreaField } from '@/components/FormField';
+import { Icon } from '@/components/Icon';
 import { Alert, Avatar, Modal, StatusBadge } from '@/components/ui';
+import {
+  useAppointmentPrescription,
+} from '@/features/prescriptions';
 import { getErrorMessage } from '@/lib/errors';
 import { useClinicTimezone } from '@/lib/hooks';
 import { formatDate, formatTime } from '@/lib/time';
@@ -21,9 +26,11 @@ const ACTION_LABEL: Record<AppointmentAction, string> = {
 export function AppointmentList({
   appointments,
   perspective,
+  showPrescription = false,
 }: {
   appointments: Appointment[];
   perspective: Perspective;
+  showPrescription?: boolean;
 }) {
   const timeZone = useClinicTimezone();
   const action = useAppointmentAction();
@@ -108,6 +115,12 @@ export function AppointmentList({
                     {ACTION_LABEL[kind]}
                   </button>
                 ))}
+                {showPrescription && appointment.status === 'COMPLETED' && (
+                  <AppointmentPrescriptionButton
+                    appointment={appointment}
+                    perspective={perspective}
+                  />
+                )}
               </div>
             </li>
           );
@@ -154,3 +167,77 @@ export function AppointmentList({
     </>
   );
 }
+
+function AppointmentPrescriptionButton({
+  appointment,
+  perspective,
+}: {
+  appointment: Appointment;
+  perspective: Perspective;
+}) {
+  const navigate = useNavigate();
+  const { data: rx, isLoading } = useAppointmentPrescription(appointment.id);
+  const [emptyAlert, setEmptyAlert] = useState(false);
+
+  function handleClick() {
+    if (perspective === 'doctor') {
+      if (rx) {
+        navigate('/doctor/prescriptions');
+      } else {
+        navigate('/doctor/prescriptions/new', {
+          state: {
+            patientId: appointment.patient.id,
+            patientName: appointment.patient.full_name,
+            appointmentId: appointment.id,
+            returnTo: '/doctor/appointments',
+          },
+        });
+      }
+    } else {
+      if (rx) {
+        navigate('/patient/prescriptions');
+      } else {
+        setEmptyAlert(true);
+      }
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className="button secondary small"
+        disabled={isLoading}
+        onClick={handleClick}
+        title={
+          rx
+            ? 'View digital prescription'
+            : perspective === 'doctor'
+              ? 'Issue prescription'
+              : 'Prescription status'
+        }
+      >
+        <Icon name="pill" size={14} />
+        {rx ? 'Prescription' : perspective === 'doctor' ? '+ Issue Rx' : 'Prescription'}
+      </button>
+
+      <Modal
+        open={emptyAlert}
+        title="Prescription Status"
+        onClose={() => setEmptyAlert(false)}
+        footer={
+          <button type="button" className="secondary" onClick={() => setEmptyAlert(false)}>
+            Close
+          </button>
+        }
+      >
+        <p className="muted">
+          No digital prescription was issued by Dr. {appointment.doctor.full_name} for this
+          appointment. If you require medication or an updated prescription, please contact your
+          doctor through Messages.
+        </p>
+      </Modal>
+    </>
+  );
+}
+

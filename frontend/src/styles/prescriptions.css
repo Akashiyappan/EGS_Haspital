@@ -1,0 +1,490 @@
+/* --- Prescriptions & Medication Tracker ----------------------------- */
+
+.rx-document {
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 2rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow);
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rx-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.rx-hospital-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rx-logo-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rx-hospital-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.rx-hospital-sub {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  margin: 0.15rem 0;
+}
+
+.rx-hospital-contact {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.rx-serial-badge {
+  text-align: right;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.rx-serial-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
+.rx-serial-number {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rx-divider {
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-border) 60%);
+  border-radius: 2px;
+  margin: -0.5rem 0;
+}
+
+.rx-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--color-surface-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+
+.rx-meta-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  margin-bottom: 0.35rem;
+}
+
+.rx-doctor-name,
+.rx-patient-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.rx-meta-detail {
+  font-size: 0.825rem;
+}
+
+.rx-date-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  font-size: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.rx-diagnosis-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--color-primary-soft);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--color-primary);
+}
+
+.rx-symbol {
+  font-size: 1.8rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--color-primary);
+  font-family: serif;
+}
+
+.rx-diagnosis-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.95rem;
+}
+
+.rx-diagnosis-value {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.rx-table-wrap {
+  overflow-x: auto;
+}
+
+.rx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.rx-table th {
+  background: var(--color-surface-2);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.rx-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.rx-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.rx-pill-badge.dosage {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.rx-pill-badge.frequency {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.rx-pill-badge.timing {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.rx-advice-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--color-surface-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+
+.rx-advice-block h4 {
+  font-size: 0.85rem;
+  color: var(--color-primary);
+  margin-bottom: 0.35rem;
+}
+
+.rx-advice-block p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.rx-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.rx-footer-note {
+  max-width: 380px;
+}
+
+.rx-signature-block {
+  text-align: center;
+  min-width: 200px;
+}
+
+.rx-signature-line {
+  height: 1px;
+  background: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.rx-signature-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* Medication Tracker Banner */
+.rx-tracker-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rx-tracker-banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rx-medicines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.rx-med-card {
+  padding: 1rem;
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rx-med-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.rx-med-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.rx-med-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rx-med-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.rx-med-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.rx-med-instructions {
+  background: var(--color-surface);
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border-left: 3px solid var(--color-primary);
+  color: var(--color-muted);
+}
+
+.rx-med-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rx-days-tag {
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+/* Doctor Prescription Form Modal */
+.rx-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.rx-chip-button {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rx-chip-button:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.rx-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.rx-item-card {
+  padding: 1rem;
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rx-item-card-header {
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rx-form-patient-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary-soft);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+
+.rx-card-diagnosis {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface-2);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--color-primary);
+}
+
+.rx-card-diagnosis-title {
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+.rx-card-medicines-table-wrap {
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.rx-card-table {
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.rx-follow-badge {
+  color: var(--color-primary);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.rx-item-summary-line {
+  line-height: 1.4;
+  margin-bottom: 0.2rem;
+}
+
+.rx-modal-patient-picker-overlay {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Print CSS */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .prescription-document,
+  .prescription-document * {
+    visibility: visible;
+  }
+
+  .prescription-document {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20mm;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .print-hide,
+  .sidebar,
+  .topbar,
+  .modal-backdrop,
+  .scrim {
+    display: none !important;
+  }
+}

@@ -6,11 +6,12 @@ names, urgency and timings are logged.
 
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.ai import safety
 from app.ai.agent import SymptomAgent
@@ -29,7 +30,16 @@ from app.core.config import settings
 from app.core.exceptions import NotFoundError, ServiceUnavailableError
 from app.core.pagination import PageParams
 from app.core.timeutils import clinic_today, utcnow
-from app.models import AIConversation, AIMessage, AIMessageRole, Doctor, Patient, User
+from app.models import (
+    AIConversation,
+    AIMessage,
+    AIMessageRole,
+    Doctor,
+    Patient,
+    Prescription,
+    PrescriptionRequest,
+    User,
+)
 from app.services import doctor_service, slot_service, specialization_service
 
 logger = logging.getLogger(__name__)
@@ -41,6 +51,19 @@ def build_registry() -> ToolRegistry:
 
 _APPOINTMENT_INTENT = re.compile(r"\b(book|booking|appointment|schedule|available slot)\b", re.I)
 _DOCTOR_LIST_INTENT = re.compile(r"\b(list|show|find|all)\b.{0,30}\bdoctors?\b", re.I)
+_PORTAL_HELP_INTENT = re.compile(
+    r"\b(what (?:can|does) (?:i|this portal|this app)|portal features|app features|"
+    r"what features (?:are )?(?:available|here)|how (?:do|can) i use (?:the )?(?:portal|app)|"
+    r"how (?:do|can) i (?:request|get|view) (?:a )?prescriptions?|what can i do here)\b",
+    re.I,
+)
+_PRESCRIPTION_INTENT = re.compile(
+    r"\b(my prescriptions?|my medicines?|my medications?|prescription dosage|"
+    r"what medicines? (?:am i|do i) (?:currently )?(?:take|prescribed)|"
+    r"what (?:was|did) (?:the doctor|my doctor) prescribe|prescription request|"
+    r"request status|medication list)\b",
+    re.I,
+)
 _SPECIFIC_SLOT_SELECTION = re.compile(
     r"\b(it|that slot|that time|this slot|this time)\b|"
     r"\b(?:at\s*)?(?:(\d{1,2}):(\d{2})|(?:(\d{1,2})\s*(am|pm)))\b",
@@ -51,7 +74,85 @@ _SPECIFIC_SLOT_SELECTION = re.compile(
 async def _retrieve_for_patient(
     db: AsyncSession, patient_text: str, now: datetime, ctx: ToolContext
 ) -> AssistantResult | None:
-    """Deterministic database retrieval for directory and booking requests."""
+    """Deterministic retrieval for hospital portal and patient data requests."""
+    if _PORTAL_HELP_INTENT.search(patient_text):
+        return AssistantResult(
+            summary=(
+                "You can find doctors and view their profiles in Find a doctor; book and manage visits in Appointments; "
+                "request a doctor's prescription review and view issued prescriptions in Prescriptions; review visit notes "
+                "in Health records; contact your care team in Messages; and manage your account in Profile. You can also "
+                "use this AI assistant for general symptom guidance and help finding care. A doctor must review and issue "
+                "prescriptions, and this assistant cannot diagnose or prescribe."
+            ),
+            response_type="follow_up",
+        )
+
+    if _PRESCRIPTION_INTENT.search(patient_text):
+        if ctx.patient is None:
+            return AssistantResult(
+                summary="Sign in to the patient portal to view your prescription records.",
+                response_type="follow_up",
+            )
+
+        rows = await db.scalars(
+            select(Prescription)
+            .where(Prescription.patient_id == ctx.patient.id)
+            .options(
+                selectinload(Prescription.items),
+                selectinload(Prescription.doctor).selectinload(Doctor.user),
+            )
+            .order_by(Prescription.created_at.desc(), Prescription.id.desc())
+            .limit(5)
+        )
+        requests = await db.scalars(
+            select(PrescriptionRequest)
+            .where(PrescriptionRequest.patient_id == ctx.patient.id)
+            .options(selectinload(PrescriptionRequest.doctor).selectinload(Doctor.user))
+            .order_by(PrescriptionRequest.created_at.desc(), PrescriptionRequest.id.desc())
+            .limit(5)
+        )
+        prescriptions = list(rows)
+        prescription_requests = list(requests)
+        ctx.prescription_lookup_completed = True
+
+        sections: list[str] = []
+        if prescriptions:
+            rx_lines = []
+            for rx in prescriptions:
+                issued_date = rx.created_at.date().isoformat() if rx.created_at else "date unavailable"
+                duration = max((item.duration_days for item in rx.items), default=0)
+                course_end = (rx.created_at.date() + timedelta(days=duration)) if rx.created_at else clinic_today(now)
+                course_status = "course period active" if clinic_today(now) <= course_end else "course period ended"
+                medicines = "; ".join(
+                    f"{item.medicine_name}: {item.dosage}, {item.frequency}, {item.timing}, "
+                    f"for {item.duration_days} days"
+                    + (f"; instructions: {item.instructions}" if item.instructions else "")
+                    for item in rx.items
+                )
+                rx_lines.append(
+                    f"RX-{rx.id:06d}, issued {issued_date} by Dr. {rx.doctor.user.full_name}; "
+                    f"diagnosis recorded: {rx.diagnosis}; {course_status}. Medicines: {medicines or 'none listed'}."
+                )
+            sections.append("Your latest doctor-issued prescriptions: " + " ".join(rx_lines))
+        else:
+            sections.append("There are no doctor-issued prescriptions in your records yet.")
+
+        if prescription_requests:
+            request_lines = [
+                f"Request #{request.id} to Dr. {request.doctor.user.full_name} is {request.status.lower()} "
+                f"(submitted {request.created_at.date().isoformat()})."
+                for request in prescription_requests
+            ]
+            sections.append("Prescription requests: " + " ".join(request_lines))
+        else:
+            sections.append("You have no prescription requests on record.")
+
+        sections.append(
+            "These details are copied from your records. Follow the prescribing doctor's instructions; "
+            "contact the doctor or pharmacist before changing a medicine or dose. The assistant cannot issue or change prescriptions."
+        )
+        return AssistantResult(summary=" ".join(sections), response_type="follow_up")
+
     if _DOCTOR_LIST_INTENT.search(patient_text):
         doctors, _ = await doctor_service.list_doctors(
             db, PageParams(page=1, page_size=20), public=True
@@ -90,12 +191,12 @@ async def _retrieve_for_patient(
             (s.name for s in doctor.specializations if target_specialization and s.id == target_specialization.id),
             doctor.specializations[0].name if doctor.specializations else "General Medicine",
         )
-        for date, slots in days.items():
+        for _date, slots in days.items():
             for slot in slots:
                 if not slot.available:
                     continue
                 ctx.available_slots.add(
-                    (doctor.id, slot.starts_at.astimezone(timezone.utc).isoformat())
+                    (doctor.id, slot.starts_at.astimezone(UTC).isoformat())
                 )
                 ctx.appointment_options.append(
                     {
@@ -290,7 +391,9 @@ async def exchange(
         result = safety.refusal_result()
         termination = "refused"
     elif not safety.has_red_flags(text) and (
-        _DOCTOR_LIST_INTENT.search(text)
+        _PORTAL_HELP_INTENT.search(text)
+        or _PRESCRIPTION_INTENT.search(text)
+        or _DOCTOR_LIST_INTENT.search(text)
         or (_APPOINTMENT_INTENT.search(text) and not _SPECIFIC_SLOT_SELECTION.search(text))
     ):
         result = await _retrieve_for_patient(db, text, now, ctx)
@@ -340,6 +443,7 @@ async def exchange(
         patient_text=text,
         allowed_doctor_ids=ctx.seen_doctor_ids,
         known_specializations={s.name.lower(): s.name for s in specializations},
+        allow_verified_prescription_details=ctx.prescription_lookup_completed,
     )
     result = result.model_copy(
         update={

@@ -206,7 +206,7 @@ describe('AdminPortalPages', () => {
     });
 
     expect(await screen.findByText('Audit log')).toBeInTheDocument();
-    expect(await screen.findByText('doctor.created')).toBeInTheDocument();
-    expect(screen.getByText('doctor #10')).toBeInTheDocument();
+    expect(await screen.findByText('Added doctor')).toBeInTheDocument();
+    expect(screen.getByText('Doctor #10')).toBeInTheDocument();
   });
 });

@@ -20,6 +20,7 @@ Design, data model, security and compliance notes: **[docs/ARCHITECTURE.md](docs
 | Upcoming / past appointments, cancellation | Chat with patients (text + images) | Leave, unavailability, clinic holidays |
 | Chat with doctors (text + images) | Read-only schedule view | Appointments overview, users, audit log |
 | AI symptom assistant with doctor suggestions | Notifications | Dashboard counters |
+| Digital e-prescriptions, active medication tracker & printable PDF | Issue & manage structured e-prescriptions with medicines & dosages | Audit log |
 
 Cross-cutting: RBAC enforced in the API, database-level double-booking protection, appointment state
 machine, realtime chat with reconnection, in-app/realtime/email notifications, reminders, audit

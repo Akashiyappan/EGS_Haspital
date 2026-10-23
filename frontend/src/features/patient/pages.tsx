@@ -90,9 +90,14 @@ export function PatientDashboard() {
           </div>
         </Card>
       </div>
-      <Card title="Your health records" actions={<Link to="/patient/records">View records</Link>}>
-        <p className="muted">Review completed visits and clinical notes from your doctors.</p>
-      </Card>
+      <div className="grid-2 align-start">
+        <Card title="Your prescriptions" actions={<Link to="/patient/prescriptions">View prescriptions</Link>}>
+          <p className="muted">Review doctor-issued medicines, dosage instructions, and prescription requests.</p>
+        </Card>
+        <Card title="Your health records" actions={<Link to="/patient/records">View records</Link>}>
+          <p className="muted">Review completed visits and clinical notes from your doctors.</p>
+        </Card>
+      </div>
     </div>
   );
 }

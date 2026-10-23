@@ -24,17 +24,17 @@ export function withToast<TData, TError, TVariables, TContext>(
 
   return {
     ...rest,
-    onSuccess: (data, variables, context) => {
+    onSuccess: (...args) => {
       if (successMessage) {
-        toast.success(typeof successMessage === 'function' ? successMessage(data) : successMessage);
+        toast.success(typeof successMessage === 'function' ? successMessage(args[0]) : successMessage);
       }
-      onSuccess?.(data, variables, context);
+      (onSuccess as ((...a: unknown[]) => unknown) | undefined)?.(...args);
     },
-    onError: (error, variables, context) => {
+    onError: (...args) => {
       if (errorMessage) {
-        toast.error(typeof errorMessage === 'function' ? errorMessage(error) : errorMessage);
+        toast.error(typeof errorMessage === 'function' ? errorMessage(args[0]) : errorMessage);
       }
-      onError?.(error, variables, context);
+      (onError as ((...a: unknown[]) => unknown) | undefined)?.(...args);
     },
   };
 }

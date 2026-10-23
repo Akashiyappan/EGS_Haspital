@@ -12,18 +12,6 @@ export function ToastProvider() {
           border: '1px solid var(--color-border)',
           boxShadow: 'var(--shadow-lg)',
         },
-        success: {
-          iconTheme: {
-            primary: 'var(--color-success)',
-            secondary: 'var(--color-surface)',
-          },
-        },
-        error: {
-          iconTheme: {
-            primary: 'var(--color-error)',
-            secondary: 'var(--color-surface)',
-          },
-        },
       }}
     />
   );

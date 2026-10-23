@@ -37,6 +37,7 @@ class ToolContext:
     appointment_options: list[dict[str, Any]] = field(default_factory=list)
     doctor_directory_ids: list[int] = field(default_factory=list)
     booked_appointment: dict[str, Any] | None = None
+    prescription_lookup_completed: bool = False
 
 
 @dataclass(frozen=True)

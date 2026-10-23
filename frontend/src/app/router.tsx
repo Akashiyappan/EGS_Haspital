@@ -17,6 +17,7 @@ const patient = () => import('@/features/patient/pages');
 const doctor = () => import('@/features/doctor/pages');
 const admin = () => import('@/features/admin/pages');
 const passwords = () => import('@/pages/PasswordPages');
+const prescriptions = () => import('@/features/prescriptions');
 
 const page = (load: () => Promise<{ default: ComponentType }>) => lazyPage(load, 'default');
 
@@ -51,6 +52,7 @@ const routes: RouteObject[] = [
               { path: 'doctors', lazy: lazyPage(patient, 'FindDoctorsPage') },
               { path: 'doctors/:doctorId', lazy: lazyPage(patient, 'DoctorProfilePage') },
               { path: 'appointments', lazy: lazyPage(patient, 'PatientAppointmentsPage') },
+              { path: 'prescriptions', lazy: lazyPage(prescriptions, 'PatientPrescriptionsPage') },
               { path: 'records', lazy: lazyPage(patient, 'PatientRecordsPage') },
               { path: 'messages/:conversationId?', lazy: lazyPage(patient, 'PatientMessagesPage') },
               { path: 'assistant/:conversationId?', lazy: lazyPage(patient, 'AssistantPage') },
@@ -68,6 +70,8 @@ const routes: RouteObject[] = [
             children: [
               { index: true, lazy: lazyPage(doctor, 'DoctorDashboard') },
               { path: 'appointments', lazy: lazyPage(doctor, 'DoctorAppointmentsPage') },
+              { path: 'prescriptions', lazy: lazyPage(prescriptions, 'DoctorPrescriptionsPage') },
+              { path: 'prescriptions/new', lazy: lazyPage(prescriptions, 'PrescriptionFormPage') },
               { path: 'patients', lazy: lazyPage(doctor, 'DoctorPatientsPage') },
               { path: 'patients/:patientId', lazy: lazyPage(doctor, 'DoctorPatientDetailPage') },
               { path: 'messages/:conversationId?', lazy: lazyPage(doctor, 'DoctorMessagesPage') },

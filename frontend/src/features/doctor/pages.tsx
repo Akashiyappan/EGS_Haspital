@@ -20,10 +20,13 @@ import { AppointmentList } from '@/features/appointments/AppointmentList';
 import { useAuth } from '@/features/auth/useAuth';
 import { useChatUnread, useOpenConversation } from '@/features/chat/api';
 import { ChatView } from '@/features/chat/ChatView';
+import {
+  usePrescriptions,
+} from '@/features/prescriptions';
 import ProfilePage from '@/pages/ProfilePage';
 import { getErrorMessage } from '@/lib/errors';
 import { useClinicTimezone, useDebouncedValue } from '@/lib/hooks';
-import { formatCalendarDate, formatDateTime, zonedToday } from '@/lib/time';
+import { formatCalendarDate, formatDateTime, formatDate, zonedToday } from '@/lib/time';
 
 import {
   useDoctorProfile,
@@ -178,8 +181,14 @@ export function DoctorPatientDetailPage() {
   const id = Number(useParams().patientId);
   const patient = useMyPatient(id);
   const appointments = useAppointments({ patient_id: id, page_size: 20 });
+  const prescriptions = usePrescriptions({ patient_id: id });
   const openChat = useOpenConversation();
   const navigate = useNavigate();
+  const timeZone = useClinicTimezone();
+
+  const openPrescriptionForm = () => navigate('/doctor/prescriptions/new', {
+    state: { patientId: id, patientName: patient.data?.full_name, returnTo: `/doctor/patients/${id}` },
+  });
 
   return (
     <div className="stack">
@@ -192,18 +201,27 @@ export function DoctorPatientDetailPage() {
             <PageHeader
               title={patient.data.full_name}
               actions={
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() =>
-                    openChat.mutate(
-                      { patient_id: id },
-                      { onSuccess: (c) => void navigate(`/doctor/messages/${c.id}`) },
-                    )
-                  }
-                >
-                  <Icon name="chat" size={18} /> Message
-                </button>
+                <div className="row wrap gap-sm">
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={openPrescriptionForm}
+                  >
+                    <Icon name="pill" size={18} /> Issue Prescription
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() =>
+                      openChat.mutate(
+                        { patient_id: id },
+                        { onSuccess: (c) => void navigate(`/doctor/messages/${c.id}`) },
+                      )
+                    }
+                  >
+                    <Icon name="chat" size={18} /> Message
+                  </button>
+                </div>
               }
             />
             {openChat.isError && <Alert>{getErrorMessage(openChat.error)}</Alert>}
@@ -219,6 +237,81 @@ export function DoctorPatientDetailPage() {
                 <dd>{patient.data.gender ?? '–'}</dd>
               </dl>
             </Card>
+
+            <Card
+              title="Prescriptions"
+              actions={
+                <button
+                  type="button"
+                  className="button secondary small"
+                  onClick={openPrescriptionForm}
+                >
+                  <Icon name="plus" size={14} /> New Rx
+                </button>
+              }
+            >
+              <QueryState
+                isLoading={prescriptions.isLoading}
+                error={prescriptions.error}
+                isEmpty={!Array.isArray(prescriptions.data) || prescriptions.data.length === 0}
+                empty={
+                  <EmptyState
+                    icon="pill"
+                    title="No prescriptions issued for this patient yet"
+                    action={
+                      <button
+                        type="button"
+                        className="button small"
+                        onClick={openPrescriptionForm}
+                      >
+                        Issue first prescription
+                      </button>
+                    }
+                  />
+                }
+              >
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Diagnosis</th>
+                        <th>Medicines</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(Array.isArray(prescriptions.data) ? prescriptions.data : []).map((rx) => (
+                        <tr key={rx.id}>
+                          <td>{formatDate(rx.created_at, timeZone)}</td>
+                          <td>
+                            <strong>{rx.diagnosis}</strong>
+                          </td>
+                          <td>
+                            <span className="small-text">
+                              {rx.items.map((i) => i.medicine_name).join(', ')}
+                            </span>
+                          </td>
+                          <td>
+                            {rx.is_active ? (
+                              <span className="badge success">Active</span>
+                            ) : (
+                              <span className="badge muted">Completed</span>
+                            )}
+                          </td>
+                          <td>
+                            <div className="row justify-end">
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </QueryState>
+            </Card>
+
             <Card title="Appointments with you">
               <QueryState isLoading={appointments.isLoading} error={appointments.error}>
                 <AppointmentList
@@ -227,6 +320,7 @@ export function DoctorPatientDetailPage() {
                 />
               </QueryState>
             </Card>
+
           </>
         )}
       </QueryState>

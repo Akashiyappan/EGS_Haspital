@@ -116,3 +116,74 @@ export interface Notification {
   read_at: string | null;
   created_at: string;
 }
+
+export interface PrescriptionItem {
+  id: number;
+  medicine_name: string;
+  dosage: string;
+  frequency: string;
+  timing: string;
+  duration_days: number;
+  instructions: string | null;
+}
+
+export interface PrescriptionDoctor {
+  id: number;
+  user_id: number;
+  full_name: string;
+  avatar_url: string | null;
+  qualification: string | null;
+  specializations: string[];
+}
+
+export interface PrescriptionPatient {
+  id: number;
+  user_id: number;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  avatar_url: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+}
+
+export interface Prescription {
+  id: number;
+  appointment_id: number | null;
+  doctor_id: number;
+  patient_id: number;
+  diagnosis: string;
+  notes: string | null;
+  advice: string | null;
+  follow_up_date: string | null;
+  created_at: string;
+  updated_at: string;
+  doctor: PrescriptionDoctor;
+  patient: PrescriptionPatient;
+  items: PrescriptionItem[];
+  is_active: boolean;
+  days_remaining: number;
+}
+
+export interface PrescriptionCreatePayload {
+  patient_id: number;
+  appointment_id?: number | null;
+  diagnosis: string;
+  notes?: string;
+  advice?: string;
+  follow_up_date?: string;
+  items: Omit<PrescriptionItem, 'id'>[];
+}
+
+export interface PrescriptionRequest {
+  id: number;
+  patient_id: number;
+  doctor_id: number;
+  appointment_id: number | null;
+  reason: string;
+  status: string;
+  created_at: string;
+  patient_name: string;
+  doctor_name: string;
+}
+

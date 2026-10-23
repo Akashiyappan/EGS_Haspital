@@ -37,8 +37,8 @@ const URGENCY: Record<Urgency, { label: string; tone: string; text: string }> = 
 
 const EXAMPLES = [
   'I have had a fever and headache for two days',
-  'Dry cough and sore throat since yesterday',
-  'Stomach pain after meals for a week',
+  'How do I request a prescription review?',
+  'What prescriptions do I have?',
 ];
 
 export function AssistantResult({
@@ -346,7 +346,7 @@ export function AssistantView({ conversationId }: { conversationId: number | nul
           <EmptyState
             icon="sparkles"
             title="A little guidance, when you need it"
-            description="Start a private consultation, describe what you’re feeling, and get practical next steps and help finding a doctor. This is not a diagnosis."
+            description="Ask about symptoms, doctors, appointments, your prescription records, or how to use the patient portal. This is not a diagnosis, and only a doctor can issue a prescription."
             action={
               <button type="button" onClick={() => void startNew()} disabled={create.isPending}>
                 <Icon name="plus" size={16} />
@@ -419,7 +419,7 @@ function AssistantThread({ conversationId }: { conversationId: number }) {
         <textarea
           className="composer-input"
           aria-label="Ask the health assistant"
-          placeholder="Ask about symptoms, doctors, or booking an appointment"
+          placeholder="Ask about symptoms, doctors, appointments, prescriptions, or portal features"
           rows={2}
           maxLength={2000}
           value={text}

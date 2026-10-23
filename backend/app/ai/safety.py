@@ -79,13 +79,15 @@ def enforce(
     patient_text: str,
     allowed_doctor_ids: set[int],
     known_specializations: dict[str, str],
+    allow_verified_prescription_details: bool = False,
 ) -> AssistantResult:
     """Apply the non-negotiable rules to a model result.
 
     - Red-flag symptoms force urgency=emergency and the fixed emergency message.
     - Doctor ids not returned by a tool in this run are dropped (no invented doctors).
     - Specializations are normalised to real ones; unknown names are dropped.
-    - Items that contain medication dosing are removed.
+    - Medication doses are removed unless the backend just returned the patient's
+      own verified prescription details for this exact request.
     - The disclaimer is fixed text, never model-generated.
     """
     urgency = result.urgency
@@ -104,7 +106,7 @@ def enforce(
             specializations.append(canonical)
 
     summary = result.summary
-    if _DOSAGE_RE.search(summary):
+    if _DOSAGE_RE.search(summary) and not allow_verified_prescription_details:
         summary = (
             "I can't advise on medicines or doses. Please discuss any medication with a "
             "doctor or pharmacist. " + _DOSAGE_RE.sub("[dose removed]", summary)

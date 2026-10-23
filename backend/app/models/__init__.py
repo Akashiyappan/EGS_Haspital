@@ -16,11 +16,13 @@ from app.models.enums import (
     AppointmentStatus,
     MessageType,
     NotificationType,
+    PrescriptionRequestStatus,
     Role,
     TimeOffKind,
 )
 from app.models.notification import AuditLog, Notification
 from app.models.patient import Patient
+from app.models.prescription import Prescription, PrescriptionItem, PrescriptionRequest
 from app.models.user import User
 
 __all__ = [
@@ -42,6 +44,10 @@ __all__ = [
     "Notification",
     "NotificationType",
     "Patient",
+    "Prescription",
+    "PrescriptionItem",
+    "PrescriptionRequest",
+    "PrescriptionRequestStatus",
     "Role",
     "Specialization",
     "TimeOffKind",
