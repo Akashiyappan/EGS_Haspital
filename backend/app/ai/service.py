@@ -27,7 +27,7 @@ from app.ai.schemas import (
 )
 from app.ai.tools import ToolContext, ToolRegistry, default_tools
 from app.core.config import settings
-from app.core.exceptions import NotFoundError, ServiceUnavailableError
+from app.core.exceptions import NotFoundError
 from app.core.pagination import PageParams
 from app.core.timeutils import clinic_today, utcnow
 from app.models import (
@@ -377,65 +377,42 @@ async def exchange(
     """
     history = await list_messages(db, conversation)
     now = utcnow()
+    previous_result = next(
+        (
+            (message.details or {}).get("result", {})
+            for message in reversed(history)
+            if message.role == AIMessageRole.ASSISTANT
+        ),
+        {},
+    )
     ctx = ToolContext(
         db=db,
         now=now,
         patient=patient,
         patient_user=patient_user,
         current_text=text,
+        prior_appointment_options=previous_result.get("appointment_options", []),
     )
-    tools_used: list[str] = []
-    termination = "not_run"
+    messages: list[dict[str, Any]] = [
+        {
+            "role": "system",
+            "content": system_prompt(settings.CLINIC_TIMEZONE, clinic_today(now).isoformat()),
+        },
+        *_history_messages(history),
+        {"role": "user", "content": text},
+    ]
+    run = await SymptomAgent(llm, build_registry()).run(messages, ctx)
+    tools_used = [t.name for t in run.tool_traces if t.ok]
+    termination = run.termination
+    result = run.result
 
-    if safety.is_prompt_injection(text):
-        result = safety.refusal_result()
-        termination = "refused"
-    elif not safety.has_red_flags(text) and (
-        _PORTAL_HELP_INTENT.search(text)
-        or _PRESCRIPTION_INTENT.search(text)
-        or _DOCTOR_LIST_INTENT.search(text)
-        or (_APPOINTMENT_INTENT.search(text) and not _SPECIFIC_SLOT_SELECTION.search(text))
-    ):
-        result = await _retrieve_for_patient(db, text, now, ctx)
-        if result is None:
-            result = safety.fallback_result(text, "no matching hospital information")
-        termination = "retrieval"
-    elif llm is None:
-        if safety.has_red_flags(text):
-            result = safety.fallback_result(text, "assistant unavailable")
-            termination = "unavailable"
-        else:
-            result = await _retrieve_for_patient(db, text, now, ctx)
-            if result is None:
-                raise ServiceUnavailableError(
-                    "The AI assistant is not configured on this server", code="ai_unavailable"
-                )
-            termination = "retrieval_fallback"
-    else:
-        messages: list[dict[str, Any]] = [
-            {
-                "role": "system",
-                "content": system_prompt(settings.CLINIC_TIMEZONE, clinic_today(now).isoformat()),
-            },
-            *_history_messages(history),
-            {"role": "user", "content": text},
-        ]
-        run = await SymptomAgent(llm, build_registry()).run(messages, ctx)
-        tools_used = [t.name for t in run.tool_traces if t.ok]
-        termination = run.termination
-        if run.result is None:
-            result = None if safety.has_red_flags(text) else await _retrieve_for_patient(
-                db, text, now, ctx
-            )
-            if result is None:
-                reason = (
-                    "the assistant is temporarily unavailable"
-                    if run.termination in ("model_error", "timeout")
-                    else "a valid answer could not be generated"
-                )
-                result = safety.fallback_result(text, reason)
-        else:
-            result = run.result
+    if result is None:
+        reason = (
+            "the assistant is temporarily unavailable"
+            if run.termination in ("model_error", "timeout")
+            else "a valid answer could not be generated"
+        )
+        result = safety.fallback_result(text, reason)
 
     specializations = await specialization_service.list_specializations(db, active_only=True)
     result = safety.enforce(

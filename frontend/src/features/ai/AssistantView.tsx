@@ -370,22 +370,42 @@ function AssistantThread({ conversationId }: { conversationId: number }) {
     bottomRef.current?.scrollIntoView?.({ block: 'end' });
   }, [messages.data?.length, ask.isPending]);
 
-  function submit(event: FormEvent) {
-    event.preventDefault();
+  function sendMessage() {
     const content = text.trim();
     if (content.length < 2 || ask.isPending) return;
     ask.mutate(content, { onSuccess: () => setText('') });
   }
 
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    sendMessage();
+  }
+
   return (
     <>
+      <header className="thread-header">
+        <span className="ai-avatar" aria-hidden>
+          <Icon name="sparkles" size={18} />
+        </span>
+        <div>
+          <strong>Health assistant</strong>
+          <p className="muted small-text">Ask about symptoms, appointments, doctors, or the portal.</p>
+        </div>
+      </header>
       <div className="messages">
         <QueryState isLoading={messages.isLoading} error={messages.error}>
           {messages.data?.length === 0 && (
             <div className="stack pad">
-              <p className="muted">
-                Describe what you feel, how long it has lasted and how severe it is.
-              </p>
+              <div>
+                <strong>What can I help with?</strong>
+                <p className="muted small-text">
+                  Describe your symptoms, ask about doctors or appointments, or get help with the
+                  portal. Include how long symptoms have lasted and how severe they feel.
+                </p>
+              </div>
+              <span className="muted small-text">
+                Choose an example to put it in the message box, then press Send.
+              </span>
               <div className="chips">
                 {EXAMPLES.map((example) => (
                   <button
@@ -416,31 +436,33 @@ function AssistantThread({ conversationId }: { conversationId: number }) {
       </div>
       {ask.isError && <Alert>{getErrorMessage(ask.error)}</Alert>}
       <form className="composer" onSubmit={submit}>
-        <textarea
-          className="composer-input"
-          aria-label="Ask the health assistant"
-          placeholder="Ask about symptoms, doctors, appointments, prescriptions, or portal features"
-          rows={2}
-          maxLength={2000}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) submit(event);
-          }}
-        />
+        <div className="composer-field">
+          <textarea
+            id="assistant-message"
+            className="composer-input"
+            aria-label="Your message to the health assistant"
+            placeholder="Type your question or request here…"
+            rows={1}
+            maxLength={2000}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+              }
+            }}
+          />
+        </div>
         <button
           type="submit"
-          className="icon-button"
-          aria-label="Send"
+          className="composer-send"
           disabled={ask.isPending || text.trim().length < 2}
         >
-          <Icon name="send" />
+          <Icon name="send" size={18} />
+          {ask.isPending ? 'Sending…' : 'Send'}
         </button>
       </form>
-      <p className="muted small-text pad">
-        Ask follow-up questions or request an appointment. Share symptom duration and severity,
-        but avoid highly sensitive personal details.
-      </p>
     </>
   );
 }

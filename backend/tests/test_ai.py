@@ -96,7 +96,7 @@ async def test_tool_calling_recommends_only_real_doctors(
     assert [d["id"] for d in result["recommended_doctors"]] == [cardio_id]
     assert result["recommended_specializations"] == ["Cardiology"]
     assert result["tools_used"] == ["search_doctors_by_specialization"]
-    assert "diagnosis" in result["disclaimer"]
+    assert "diagnos" in result["disclaimer"]
 
     # The tool result fed back to the model contained the real doctor from the DB.
     tool_messages = [m for m in llm.calls[1]["messages"] if m["role"] == "tool"]

@@ -1327,6 +1327,11 @@ input:disabled {
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.thread-header p {
+  margin: 0.15rem 0 0;
 }
 
 .messages {
@@ -1386,14 +1391,35 @@ input:disabled {
 
 .composer {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem;
   border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.composer-field {
+  display: grid;
+  flex: 1;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
 .composer-input {
-  flex: 1;
+  min-height: 2.5rem;
+  max-height: 7rem;
+  padding: 0.55rem 0.7rem;
+  resize: vertical;
+  border-color: var(--color-border-strong, var(--color-border));
+}
+
+.composer-input:focus {
+  border-color: var(--color-primary);
+}
+
+.composer-send {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.75rem;
 }
 
 .chat-thread > .alert,
@@ -1574,6 +1600,12 @@ input:disabled {
 
   .bubble {
     max-width: 88%;
+  }
+
+  .composer {
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
   }
 
   .ai-message {

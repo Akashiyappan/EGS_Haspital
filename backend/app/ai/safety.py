@@ -137,8 +137,19 @@ def fallback_result(patient_text: str, reason: str) -> AssistantResult:
     )
     return AssistantResult(
         summary=summary,
+        response_type="follow_up" if not emergency else "assessment",
         urgency="emergency" if emergency else "routine",
         emergency_message=emergency_message() if emergency else None,
+        next_steps=(
+            ["Seek emergency care now; do not wait for the assistant."]
+            if emergency
+            else ["Try again shortly, or book a clinician visit if you want your symptoms reviewed."]
+        ),
+        follow_up_questions=(
+            []
+            if emergency
+            else ["What is your measured temperature, and are you having any other symptoms?"]
+        ),
         disclaimer=DISCLAIMER,
     )
 

@@ -35,6 +35,7 @@ class ToolContext:
     seen_doctor_ids: set[int] = field(default_factory=set)
     available_slots: set[tuple[int, str]] = field(default_factory=set)
     appointment_options: list[dict[str, Any]] = field(default_factory=list)
+    prior_appointment_options: list[dict[str, Any]] = field(default_factory=list)
     doctor_directory_ids: list[int] = field(default_factory=list)
     booked_appointment: dict[str, Any] | None = None
     prescription_lookup_completed: bool = False

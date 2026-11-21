@@ -2,7 +2,7 @@
 
 import datetime as dt
 import re
-from datetime import timedelta, timezone
+from datetime import timedelta
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
@@ -167,7 +167,7 @@ class GetAvailableAppointmentSlotsTool(Tool):
             for slot in free
         ]
         ctx.available_slots.update(
-            (doctor.id, slot.starts_at.astimezone(timezone.utc).isoformat()) for slot in free
+            (doctor.id, slot.starts_at.astimezone(dt.UTC).isoformat()) for slot in free
         )
         specialization = doctor.specializations[0].name if doctor.specializations else "General Medicine"
         ctx.appointment_options.extend(
@@ -243,7 +243,7 @@ class BookAppointmentTool(Tool):
             raise ToolError(
                 "The patient has not selected a specific slot yet. Offer available times and ask which one they want."
             )
-        key = (params.doctor_id, params.starts_at.astimezone(timezone.utc).isoformat())
+        key = (params.doctor_id, params.starts_at.astimezone(dt.UTC).isoformat())
         if key not in ctx.available_slots:
             raise ToolError("That exact slot was not freshly retrieved as available. Check the date's slots first.")
 
